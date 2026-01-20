@@ -14,6 +14,17 @@ from io import BytesIO
 
 router = APIRouter()
 
+def find_photo(student_id: str):
+    photos_dir = "photos"
+    for ext in ["jpg", "jpeg", "png"]:
+        filename = f"{student_id}.{ext}"
+        path = os.path.join(photos_dir, filename)
+        if os.path.exists(path):
+            return filename
+    return None
+
+
+
 # ---------------------------------------------------------
 # コース別の名簿ダウンロード
 # ---------------------------------------------------------
@@ -364,6 +375,10 @@ def update_student(student_id: str, student: StudentUpdate):
                 if v is not None:
                     s[k] = v
             save_data(data)
+
+            photo = find_photo(s["id"])
+            s["photo"] = photo
+
             return s
 
     raise HTTPException(status_code=404, detail="Student not found")
@@ -427,6 +442,9 @@ def get_student(student_id: str):
 
             if s.get("attend_no") is not None:
                 s["attend_no"] = str(s["attend_no"])
+
+            photo = find_photo(s["id"])
+            s["photo"] = photo
 
             return s
 

@@ -31,6 +31,7 @@ class StudentBase(BaseModel):
     attend_no: Optional[str] = None
 
     class_name: Optional[str] = None
+    photo: str | None = None
 
 
 class StudentCreate(BaseModel):
@@ -64,6 +65,7 @@ class StudentCreate(BaseModel):
     note2: Optional[str] = None
     commute: Optional[str] = None
     attend_no: Optional[str] = None
+    photo: str | None = None
 
 
 
@@ -97,6 +99,7 @@ class StudentUpdate(BaseModel):
     emergency2label: Optional[str] = None
     attend_no: Optional[str] = None
     class_name: Optional[str] = None
+    photo: str | None = None
 
 
 class StudentOut(StudentBase):
@@ -131,3 +134,4 @@ class StudentOut(StudentBase):
     emergency2label: Optional[str] = None
     attend_no: Optional[str] = None
     class_name: Optional[str] = None
+    photo: str | None = None
