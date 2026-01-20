@@ -48,8 +48,17 @@ app.add_middleware(
 # -------------------------------
 # 写真フォルダの設定
 # -------------------------------
-PHOTOS_DIR = os.path.join(BASE_DIR, "photos")
+# Detecta se está rodando no servidor ou no Mac
+if "student-app-backend" in BASE_DIR:
+    # Servidor
+    PHOTOS_DIR = "/home/carlos/student-app-backend/photos"
+else:
+    # Mac
+    PHOTOS_DIR = os.path.join(BASE_DIR, "photos")
+
 os.makedirs(PHOTOS_DIR, exist_ok=True)
+
+
 
 # 静的ファイルとして公開
 app.mount("/photos", StaticFiles(directory=PHOTOS_DIR), name="photos")
