@@ -92,12 +92,12 @@ async def upload_photo(student_id: str, file: UploadFile = File(...)):
 # -------------------------------
 # ルーター登録
 # -------------------------------
-app.include_router(students_router, prefix="/students", tags=["Students"])
-app.include_router(search_router, prefix="/students", tags=["Search"])
-app.include_router(classes_router, prefix="/classes", tags=["Classes"])
-app.include_router(promote_router, prefix="/students", tags=["Promote"])
-app.include_router(demote_router, prefix="/students", tags=["Demote"])
-app.include_router(restore_router, prefix="/students/restore", tags=["Restore"])
+app.include_router(students_router, prefix="/api/students", tags=["Students"])
+app.include_router(search_router, prefix="/api/students", tags=["Search"])
+app.include_router(classes_router, prefix="/api/classes", tags=["Classes"])
+app.include_router(promote_router, prefix="/api/students", tags=["Promote"])
+app.include_router(demote_router, prefix="/api/students", tags=["Demote"])
+app.include_router(restore_router, prefix="/api/students/restore", tags=["Restore"])
 
 # -------------------------------
 # 動作確認用
