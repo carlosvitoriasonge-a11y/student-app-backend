@@ -49,12 +49,9 @@ app.add_middleware(
 # 写真フォルダの設定
 # -------------------------------
 # Detecta se está rodando no servidor ou no Mac
-if "student-app-backend" in BASE_DIR:
-    # Servidor
-    PHOTOS_DIR = "/home/carlos/student-app-backend/photos"
-else:
-    # Mac
-    PHOTOS_DIR = os.path.join(BASE_DIR, "photos")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+DEFAULT_PHOTOS_DIR = os.path.join(BASE_DIR, "photos") 
+PHOTOS_DIR = os.environ.get("PHOTOS_DIR", DEFAULT_PHOTOS_DIR) 
 
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 
