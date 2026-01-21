@@ -28,7 +28,7 @@ def find_photo(student_id: str):
 # ---------------------------------------------------------
 # コース別の名簿ダウンロード
 # ---------------------------------------------------------
-@router.get("/export/classlist")
+@router.get("/classlist/export")
 def download_all_classes(grade: str, course: str | None = None):
     data = load_data()
 
