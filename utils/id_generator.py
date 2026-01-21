@@ -7,9 +7,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def generate_student_id(year: str, course: str) -> str:
     # Z / W / S に対応
     prefix_map = {
-        "全": "z",   # 全日
-        "水": "w",   # 水曜
-        "集": "s"    # 集中
+        "z": "z",   # 全日
+        "w": "w",   # 水曜
+        "s": "s"    # 集中
     }
 
     prefix = prefix_map.get(course)
