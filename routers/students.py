@@ -12,6 +12,27 @@ import hashlib
 import openpyxl
 from io import BytesIO
 
+# =========================================================
+# COURSE MAPS (ADICIONADO)
+# =========================================================
+
+COURSE_REVERSE_MAP = {
+    "全": "s",
+    "水": "w",
+    "集": "z",
+}
+
+COURSE_LABEL_MAP = {
+    "s": "全",
+    "w": "水",
+    "z": "集",
+}
+
+def normalize_course(course):
+    return COURSE_REVERSE_MAP.get(course, course)
+
+# =========================================================
+
 router = APIRouter()
 
 def find_photo(student_id: str):
@@ -23,8 +44,6 @@ def find_photo(student_id: str):
             return filename
     return None
 
-
-
 # ---------------------------------------------------------
 # コース別の名簿ダウンロード
 # ---------------------------------------------------------
@@ -34,7 +53,9 @@ def download_all_classes(grade: str, course: str | None = None):
 
     students = [
         s for s in data
-        if s.get("grade") == grade and (course is None or s.get("course") == course)
+        if s.get("grade") == grade and (
+            course is None or normalize_course(s.get("course")) == course
+        )
     ]
 
     if not students:
@@ -63,7 +84,7 @@ def download_all_classes(grade: str, course: str | None = None):
                 s.get("attend_no") or "",
                 s.get("name") or "",
                 s.get("gender") or "",
-                s.get("course") or "",
+                COURSE_LABEL_MAP.get(normalize_course(s.get("course")), s.get("course") or ""),
             ])
 
     stream = BytesIO()
@@ -86,7 +107,6 @@ def download_all_classes(grade: str, course: str | None = None):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
-
 # ---------------------------------------------------------
 # 在校生一覧
 # ---------------------------------------------------------
@@ -103,7 +123,6 @@ def list_students(grade: str | None = None):
 
     return data
 
-
 # ---------------------------------------------------------
 # フィルター
 # ---------------------------------------------------------
@@ -119,7 +138,10 @@ def filter_students(
     course_map = {
         "full": "全",
         "wednesday": "水",
-        "intensive": "集"
+        "intensive": "集",
+        "s": "全",
+        "w": "水",
+        "z": "集",
     }
 
     gender_map = {
@@ -135,7 +157,7 @@ def filter_students(
     for s in data:
         if s.get("grade") != grade:
             continue
-        if course_jp and s.get("course") != course_jp:
+        if course_jp and normalize_course(s.get("course")) != normalize_course(course_jp):
             continue
         if gender_jp and s.get("gender") != gender_jp:
             continue
@@ -144,7 +166,6 @@ def filter_students(
         results.append(s)
 
     return results
-
 
 # ---------------------------------------------------------
 # 在校生検索
@@ -160,7 +181,6 @@ def search_students(keyword: str):
         or keyword in s["kana"].lower()
         or keyword in s["id"].lower()
     ]
-
 
 # ---------------------------------------------------------
 # CSV テンプレート
@@ -182,7 +202,6 @@ def download_template_csv():
         headers={"Content-Disposition": "attachment; filename=student_template.csv"}
     )
 
-
 # ---------------------------------------------------------
 # 卒業生一覧
 # ---------------------------------------------------------
@@ -200,7 +219,6 @@ def list_graduates(year: int | None = None):
 
     grads.sort(key=lambda g: g.get("id", ""))
     return grads
-
 
 # ---------------------------------------------------------
 # 卒業生検索
@@ -223,7 +241,6 @@ def search_graduates(keyword: str):
         or keyword in g["id"].lower()
     ]
 
-
 # ---------------------------------------------------------
 # 卒業生個別
 # ---------------------------------------------------------
@@ -243,7 +260,6 @@ def get_graduate(student_id: str):
             return s
 
     raise HTTPException(status_code=404, detail="Graduate not found")
-
 
 # ---------------------------------------------------------
 # CSV 一括登録
@@ -310,13 +326,13 @@ async def import_students_csv(file: UploadFile = File(...)):
         raw_course = converted.get("course", "").strip()
 
         if "全" in raw_course:
-            course_code = "z"
+            course_code = "s"
             converted["course"] = "全"
         elif "水" in raw_course:
             course_code = "w"
             converted["course"] = "水"
         elif "集" in raw_course:
-            course_code = "s"
+            course_code = "z"
             converted["course"] = "集"
         else:
             raise HTTPException(status_code=400, detail=f"コースが判別できません: {raw_course}")
@@ -346,7 +362,6 @@ async def import_students_csv(file: UploadFile = File(...)):
 
     return {"added": len(new_students)}
 
-
 # ---------------------------------------------------------
 # 生徒登録（個別）
 # ---------------------------------------------------------
@@ -359,7 +374,6 @@ def create_student(student: StudentCreate):
     data.append(new_student)
     save_data(data)
     return new_student
-
 
 # ---------------------------------------------------------
 # 生徒編集
@@ -383,7 +397,6 @@ def update_student(student_id: str, student: StudentUpdate):
 
     raise HTTPException(status_code=404, detail="Student not found")
 
-
 # ---------------------------------------------------------
 # 生徒削除
 # ---------------------------------------------------------
@@ -400,7 +413,6 @@ def delete_student(student_id: str):
     save_data(new_data)
     return {"status": "deleted"}
 
-
 # ---------------------------------------------------------
 # 学年一覧
 # ---------------------------------------------------------
@@ -409,7 +421,6 @@ def get_grades():
     data = load_data()
     grades = sorted({s.get("grade") for s in data if s.get("grade")})
     return grades
-
 
 # ---------------------------------------------------------
 # クラス一覧
@@ -427,7 +438,6 @@ def get_classes(grade: str):
         return {"message": "クラス分けはまだされていません"}
 
     return classes
-
 
 # ---------------------------------------------------------
 # 生徒個別取得（動的ルート）

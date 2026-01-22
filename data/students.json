@@ -29,7 +29,7 @@
     "attend_no": ""
   },
   {
-    "course": "全",
+    "course": "集",
     "name": "小部　たいち",
     "kana": "こべ　たいち",
     "gender": "男",
@@ -54,10 +54,10 @@
     "id": "2026-z-051",
     "grade": "1",
     "class_name": "1組",
-    "attend_no": "2"
+    "attend_no": 10
   },
   {
-    "course": "全",
+    "course": "水",
     "name": "小部　マキシマム",
     "kana": "こべ　マキシマム",
     "gender": "男",
@@ -81,8 +81,8 @@
     "commute": "近鉄",
     "id": "2026-z-011",
     "grade": "1",
-    "class_name": "2組",
-    "attend_no": 1
+    "class_name": "1",
+    "attend_no": 7
   },
   {
     "name": "塚本　みさき",
@@ -212,7 +212,7 @@
     "kana": "まっくす　ふぇるすたっぺん",
     "gender": "男",
     "year": "2026",
-    "course": "全",
+    "course": "水",
     "grade": "1",
     "birth_date": "1998/1/2",
     "admission_date": "2026/4/1",
@@ -234,7 +234,8 @@
     "note1": "",
     "note2": "",
     "commute": "",
-    "attend_no": null,
-    "id": "2026-z-052"
+    "attend_no": 8,
+    "id": "2026-z-052",
+    "class_name": "1組"
   }
 ]
