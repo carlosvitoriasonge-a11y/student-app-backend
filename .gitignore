@@ -1,3 +1,35 @@
+# =========================
+# Python cache
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# =========================
+# Virtual environment
+# =========================
+.venv/
+venv/
+env/
+
+# =========================
+# Runtime data (NÃO versionar)
+# =========================
+data/students.json
+data/last_import_hash.txt
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+.idea/
+.vscode/
 __pycache__/
 venv/
 photos/
