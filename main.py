@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 from pathlib import Path
+from utils.date import school_year, now_iso
+
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
@@ -45,6 +47,11 @@ from routers.restore import router as restore_router
 from routers.demote import router as demote_router
 from routers.search import router as search_router
 from routers.course_change import router as course_change_router  # ← ★ 追加
+from routers.joseki import router as joseki_router
+from routers.tengaku import router as tengaku_router 
+from routers.taigaku import router as taigaku_router
+from routers.exit_list import router as exit_list_router
+
 
 app = FastAPI(title="Student Management API")
 
@@ -94,6 +101,7 @@ async def upload_photo(student_id: str, file: UploadFile = File(...)):
 # -------------------------------
 # ルーター登録
 # -------------------------------
+app.include_router(exit_list_router, prefix="/api/students", tags=["ExitList"])
 app.include_router(students_router, prefix="/api/students", tags=["Students"])
 app.include_router(search_router, prefix="/api/students", tags=["Search"])
 app.include_router(classes_router, prefix="/api/classes", tags=["Classes"])
@@ -101,6 +109,11 @@ app.include_router(promote_router, prefix="/api/students", tags=["Promote"])
 app.include_router(demote_router, prefix="/api/students", tags=["Demote"])
 app.include_router(restore_router, prefix="/api/students/restore", tags=["Restore"])
 app.include_router(course_change_router, prefix="/api/students", tags=["CourseChange"])  # ← ★ 追加
+app.include_router(joseki_router, prefix="/api/students", tags=["Joseki"])
+app.include_router(tengaku_router, prefix="/api/students", tags=["Tengaku"]) 
+app.include_router(taigaku_router, prefix="/api/students", tags=["Taigaku"])
+
+
 
 # -------------------------------
 # 動作確認用
