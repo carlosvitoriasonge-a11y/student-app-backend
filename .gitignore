@@ -16,8 +16,7 @@ env/
 # =========================
 # Runtime data (NÃO versionar)
 # =========================
-data/students.json
-data/last_import_hash.txt
+data/
 
 # =========================
 # Logs
