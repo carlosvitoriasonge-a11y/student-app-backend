@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from PIL import Image
 import io
-
+#app
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
@@ -55,7 +55,10 @@ from routers.taigaku import router as taigaku_router
 from routers.exit_list import router as exit_list_router
 
 
-app = FastAPI(title="Student Management API")
+app = FastAPI(
+    title="Student Management API",
+    redirect_slashes=False
+)
 
 # -------------------------------
 # CORS
