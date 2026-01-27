@@ -17,15 +17,15 @@ from io import BytesIO
 # =========================================================
 
 COURSE_REVERSE_MAP = {
-    "全": "s",
+    "全": "z",
     "水": "w",
-    "集": "z",
+    "集": "s",
 }
 
 COURSE_LABEL_MAP = {
-    "s": "全",
+    "z": "全",
     "w": "水",
-    "z": "集",
+    "s": "集",
 }
 
 def normalize_course(course):
@@ -92,9 +92,9 @@ def download_all_classes(grade: str, course: str | None = None):
     stream.seek(0)
 
     course_code_map = {
-        "全": "Z",
-        "水": "W",
-        "集": "S",
+        "全": "z",
+        "水": "w",
+        "集": "s",
         None: "ALL"
     }
     course_code = course_code_map.get(course, "ALL")
