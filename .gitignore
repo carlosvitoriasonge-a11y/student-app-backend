@@ -16,7 +16,9 @@ env/
 # =========================
 # Runtime data (NÃO versionar)
 # =========================
-data/
+data/*
+!data/student_template.csv
+
 
 # =========================
 # Logs
