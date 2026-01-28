@@ -315,7 +315,13 @@ async def import_students_csv(file: UploadFile = File(...)):
         "つながりやすい時間帯": "contact_time",
         "備考①": "note1",
         "備考②": "note2",
-        "通学方法": "commute"
+        "通学方法": "commute",
+        "１年のクラス（新入生なら空欄）": "class_grade1", 
+        "1年の出席番号（新入生なら空欄）": "number_grade1",
+        "1年の担任（新入生なら空欄）": "teacher_grade1",
+        "2年のクラス（新入生・1年生なら空欄）": "class_grade2", 
+        "2年の出席番号（新入生・1年生なら空欄）": "number_grade2", 
+        "2年の担任（新入生・1年生なら空欄）": "teacher_grade2"
     }
 
     for row in reader:
