@@ -288,7 +288,7 @@ async def import_students_csv(file: UploadFile = File(...)):
 
 
     students = load_data()
-    new_students = []
+    original_count = len(students)
 
     mapping = {
         "ID（新入生なら空欄）": "id",
@@ -330,13 +330,13 @@ async def import_students_csv(file: UploadFile = File(...)):
         raw_course = converted.get("course", "").strip()
 
         if "全" in raw_course:
-            course_code = "s"
+            course_code = "z"
             converted["course"] = "全"
         elif "水" in raw_course:
             course_code = "w"
             converted["course"] = "水"
         elif "集" in raw_course:
-            course_code = "z"
+            course_code = "s"
             converted["course"] = "集"
         else:
             raise HTTPException(status_code=400, detail=f"コースが判別できません: {raw_course}")
@@ -356,15 +356,13 @@ async def import_students_csv(file: UploadFile = File(...)):
 
         converted["class_name"] = converted.get("class_name", "")
 
-        new_students.append(converted)
-
-    students.extend(new_students)
-    save_data(students)
+        students.append(converted)
+        save_data(students)
 
     with open(hash_path, "w", encoding="utf-8") as f:
         f.write(csv_hash)
 
-    return {"added": len(new_students)}
+    return {"added": len(students) - original_count}
 
 # ---------------------------------------------------------
 # 生徒登録（個別）
