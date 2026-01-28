@@ -280,8 +280,12 @@ async def import_students_csv(file: UploadFile = File(...)):
         if last_hash == csv_hash:
             raise HTTPException(status_code=400, detail="同じCSVがすでにアップロードされています")
 
-    content = raw_bytes.decode("utf-8").splitlines()
-    reader = csv.DictReader(content)
+    # Lê CSV do Numbers corretamente (UTF-8 + BOM + quebras internas)
+    text = raw_bytes.decode("utf-8-sig")
+    stream = io.StringIO(text)
+
+    reader = csv.DictReader(stream, delimiter=",", quotechar='"')
+
 
     students = load_data()
     new_students = []
