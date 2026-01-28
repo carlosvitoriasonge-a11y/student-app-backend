@@ -292,6 +292,7 @@ async def import_students_csv(file: UploadFile = File(...)):
 
     mapping = {
         "ID（新入生なら空欄）": "id",
+        "学年（新入生なら空欄）":"grade",
         "名前": "name",
         "ふりがな": "kana",
         "性別": "gender",
