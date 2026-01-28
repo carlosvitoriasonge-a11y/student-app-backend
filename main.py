@@ -191,7 +191,7 @@ app.include_router(joseki_router, prefix="/api/students", tags=["Joseki"], depen
 app.include_router(tengaku_router, prefix="/api/students", tags=["Tengaku"], dependencies=[Depends(verify_token)])
 app.include_router(taigaku_router, prefix="/api/students", tags=["Taigaku"], dependencies=[Depends(verify_token)])
 
-@app.get("/api/system/status", dependencies=[Depends(verify_token)])
+@app.get("/api/system/status")
 def system_status():
     disk = shutil.disk_usage("/")
     mem = psutil.virtual_memory()
