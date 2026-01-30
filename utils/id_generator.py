@@ -23,7 +23,7 @@ def generate_student_id(year: str, course: str) -> str:
     # 在校生のIDを抽出
     ids = []
     for s in students:
-        sid = s["id"]
+        sid = s.get("id", "")
         if sid.startswith(prefix_str):
             try:
                 ids.append(int(sid.split("-")[2]))
@@ -36,12 +36,11 @@ def generate_student_id(year: str, course: str) -> str:
         with open(graduates_path, "r", encoding="utf-8") as f:
             grads = json.load(f)
             for g in grads:
-                gid = g["id"]
+                gid = g.get("id", "")
                 if gid.startswith(prefix_str):
-                    try:
-                        ids.append(int(gid.split("-")[2]))
-                    except:
-                        pass
+                    parts = gid.split("-") 
+                    if len(parts) == 3 and parts[2].isdigit(): 
+                        ids.append(int(parts[2]))
 
     next_seq = (max(ids) + 1) if ids else 1
     return f"{prefix_str}{next_seq:03d}".lower()
