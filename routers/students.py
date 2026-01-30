@@ -264,6 +264,24 @@ def get_graduate(student_id: str):
 # ---------------------------------------------------------
 # CSV 一括登録
 # ---------------------------------------------------------
+def extract_year(data: dict) -> str:
+    # 入学年月日
+    if data.get("admission_date"):
+        return data["admission_date"][:4]
+
+    # 編入学
+    if data.get("transfer_advanced_date"):
+        return data["transfer_advanced_date"][:4]
+
+    # 転入学
+    if data.get("transfer_date"):
+        return data["transfer_date"][:4]
+
+    raise HTTPException(
+        status_code=400,
+        detail="入学年月日・編入学・転入学のいずれも空欄のため、IDを生成できません"
+    )
+
 @router.post("/import_csv")
 async def import_students_csv(file: UploadFile = File(...)):
     if not file.filename.endswith(".csv"):
@@ -298,6 +316,11 @@ async def import_students_csv(file: UploadFile = File(...)):
         "性別": "gender",
         "生年月日(例：2007/01/10)": "birth_date",
         "入学年月日(例：2026/04/01)": "admission_date",
+        "編入学": "transfer_advanced_date",
+        "転入学": "transfer_date",
+        "前在籍校": "previous_school",
+        "課程": "course_type",
+        "前在籍校住所": "previous_school_address",
         "出身中学校": "junior_high",
         "中学校の卒業年月日": "junior_high_grad_date",
         "〒": "postal_code",
@@ -348,8 +371,7 @@ async def import_students_csv(file: UploadFile = File(...)):
         else:
             raise HTTPException(status_code=400, detail=f"コースが判別できません: {raw_course}")
 
-        admission_date = converted.get("admission_date", "")
-        year = admission_date[:4]
+        year = extract_year(converted)
 
         raw_id = converted.get("id", "").strip().lower()
 
@@ -374,15 +396,18 @@ async def import_students_csv(file: UploadFile = File(...)):
 # ---------------------------------------------------------
 # 生徒登録（個別）
 # ---------------------------------------------------------
+
 @router.post("/", response_model=StudentOut)
 def create_student(student: StudentCreate):
     data = load_data()
-    new_id = generate_student_id(student.year, student.course)
-    new_student = student.dict()
-    new_student["id"] = new_id.lower()
-    data.append(new_student)
+
+    data_dict = student.dict()
+    year = extract_year(data_dict)
+    new_id = generate_student_id(year, data_dict["course"])
+    data_dict["id"] = new_id.lower()
+    data.append(data_dict)
     save_data(data)
-    return new_student
+    return data_dict
 
 # ---------------------------------------------------------
 # 生徒編集
@@ -394,13 +419,20 @@ def update_student(student_id: str, student: StudentUpdate):
     data = load_data()
     for s in data:
         if s["id"].lower() == student_id:
-            for k, v in student.dict().items():
+
+
+            # Impede alteração do ID 
+            update_data = student.dict() 
+            update_data.pop("id", None)
+
+            for k, v in update_data.items():
                 if v is not None:
                     s[k] = v
-            save_data(data)
 
             photo = find_photo(s["id"])
             s["photo"] = photo
+
+            save_data(data)
 
             return s
 

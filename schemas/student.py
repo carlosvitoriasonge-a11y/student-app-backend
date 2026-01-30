@@ -32,6 +32,14 @@ class StudentBase(BaseModel):
 
     class_name: Optional[str] = None
     photo: str | None = None
+    transfer_advanced_date: Optional[str] = None  # 編入学
+    transfer_date: Optional[str] = None           # 転入学
+    previous_school: Optional[str] = None         # 前在籍校
+    course_type: Optional[str] = None             # 課程
+    previous_school_address: Optional[str] = None # 前在籍校住所
+
+
+
 
 
 class StudentCreate(BaseModel):
@@ -66,6 +74,12 @@ class StudentCreate(BaseModel):
     commute: Optional[str] = None
     attend_no: Optional[str] = None
     photo: str | None = None
+    transfer_advanced_date: Optional[str] = None
+    transfer_date: Optional[str] = None
+    previous_school: Optional[str] = None
+    course_type: Optional[str] = None
+    previous_school_address: Optional[str] = None
+
 
 
 
@@ -100,6 +114,11 @@ class StudentUpdate(BaseModel):
     attend_no: Optional[str] = None
     class_name: Optional[str] = None
     photo: str | None = None
+    transfer_advanced_date: Optional[str] = None
+    transfer_date: Optional[str] = None
+    previous_school: Optional[str] = None
+    course_type: Optional[str] = None
+    previous_school_address: Optional[str] = None
 
 
 class StudentOut(StudentBase):
@@ -135,3 +154,8 @@ class StudentOut(StudentBase):
     attend_no: Optional[str] = None
     class_name: Optional[str] = None
     photo: str | None = None
+    transfer_advanced_date: Optional[str] = None
+    transfer_date: Optional[str] = None
+    previous_school: Optional[str] = None
+    course_type: Optional[str] = None
+    previous_school_address: Optional[str] = None
