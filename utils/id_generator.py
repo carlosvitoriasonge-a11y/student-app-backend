@@ -4,12 +4,11 @@ from utils.data import load_data
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def generate_student_id(year: str, course: str) -> str:
-    # Z / W / S に対応
+def generate_student_id(year: str, course: str, students: list) -> str:
     prefix_map = {
-        "z": "z",   # 全日
-        "w": "w",   # 水曜
-        "s": "s"    # 集中
+        "z": "z",
+        "w": "w",
+        "s": "s"
     }
 
     prefix = prefix_map.get(course)
@@ -18,17 +17,14 @@ def generate_student_id(year: str, course: str) -> str:
 
     prefix_str = f"{year}-{prefix}-"
 
-    students = load_data()
-
-    # 在校生のIDを抽出
+    # 在校生のIDを抽出（CSVで追加中の新規生徒も含む）
     ids = []
     for s in students:
         sid = s.get("id", "")
         if sid.startswith(prefix_str):
-            try:
-                ids.append(int(sid.split("-")[2]))
-            except:
-                pass
+            parts = sid.split("-")
+            if len(parts) == 3 and parts[2].isdigit():
+                ids.append(int(parts[2]))
 
     # 卒業生もチェック
     graduates_path = os.path.join(BASE_DIR, "..", "data", "graduates.json")
@@ -38,8 +34,8 @@ def generate_student_id(year: str, course: str) -> str:
             for g in grads:
                 gid = g.get("id", "")
                 if gid.startswith(prefix_str):
-                    parts = gid.split("-") 
-                    if len(parts) == 3 and parts[2].isdigit(): 
+                    parts = gid.split("-")
+                    if len(parts) == 3 and parts[2].isdigit():
                         ids.append(int(parts[2]))
 
     next_seq = (max(ids) + 1) if ids else 1
