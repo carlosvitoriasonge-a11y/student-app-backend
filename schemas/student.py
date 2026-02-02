@@ -37,6 +37,9 @@ class StudentBase(BaseModel):
     previous_school: Optional[str] = None         # 前在籍校
     course_type: Optional[str] = None             # 課程
     previous_school_address: Optional[str] = None # 前在籍校住所
+    status: Optional[str] = None
+    suspension_history: Optional[list] = None
+
 
 
 
@@ -119,6 +122,8 @@ class StudentUpdate(BaseModel):
     previous_school: Optional[str] = None
     course_type: Optional[str] = None
     previous_school_address: Optional[str] = None
+    status: Optional[str] = None
+    suspension_history: Optional[list] = None
 
 
 class StudentOut(StudentBase):
@@ -159,3 +164,5 @@ class StudentOut(StudentBase):
     previous_school: Optional[str] = None
     course_type: Optional[str] = None
     previous_school_address: Optional[str] = None
+    status: Optional[str] = None
+    suspension_history: Optional[list] = None

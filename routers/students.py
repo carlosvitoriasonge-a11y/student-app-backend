@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Response
+from fastapi import APIRouter, HTTPException, UploadFile, File, Response, Query
 from fastapi.responses import StreamingResponse
 from schemas.student import StudentCreate, StudentUpdate, StudentOut
 from utils.data import load_data, save_data
 from utils.id_generator import generate_student_id
+from datetime import datetime
 
 import os
 import json
@@ -118,10 +119,14 @@ def list_students(grade: str | None = None):
         if s.get("attend_no") is not None:
             s["attend_no"] = str(s["attend_no"])
 
-    if grade:
-        return [s for s in data if s["grade"] == grade]
+    EXCLUDED = ["卒業", "退学", "転出", "休学"]
 
-    return data
+    active = [s for s in data if s.get("status", "在籍") not in EXCLUDED]
+
+    if grade:
+        return [s for s in active if s["grade"] == grade]
+
+    return active
 
 # ---------------------------------------------------------
 # フィルター
@@ -385,8 +390,29 @@ async def import_students_csv(file: UploadFile = File(...)):
 
         converted["class_name"] = converted.get("class_name", "")
 
+        # --- VERIFICAÇÃO DE DUPLICIDADE ---
+        duplicate = False
+        for s in students:
+            if (
+                s.get("name") == converted.get("name") and
+                s.get("birth_date") == converted.get("birth_date") and
+                s.get("guardian1") == converted.get("guardian1") and
+                s.get("address1") == converted.get("address1")
+            ):
+                duplicate = True
+                break
+
+        if duplicate:
+            # ignora aluno duplicado
+            continue
+        # ----------------------------------
+
+        if "status" not in converted or not converted["status"]:
+            converted["status"] = "在籍"
+
+
         students.append(converted)
-        save_data(students)
+    save_data(students)
 
     with open(hash_path, "w", encoding="utf-8") as f:
         f.write(csv_hash)
@@ -402,9 +428,24 @@ def create_student(student: StudentCreate):
     data = load_data()
 
     data_dict = student.dict()
+
+    # --- VERIFICAÇÃO DE DUPLICIDADE --- 
+    for s in data: 
+        if (
+            s.get("name") == data_dict.get("name") and 
+            s.get("birth_date") == data_dict.get("birth_date") and 
+            s.get("guardian1") == data_dict.get("guardian1") and 
+            s.get("address1") == data_dict.get("address1") 
+        ): 
+            raise HTTPException(status_code=400, detail="duplicate_student") 
+    # ----------------------------------
+
+
+
     year = extract_year(data_dict)
     new_id = generate_student_id(year, data_dict["course"])
     data_dict["id"] = new_id.lower()
+    data_dict["status"] = "在籍"
     data.append(data_dict)
     save_data(data)
     return data_dict
@@ -479,6 +520,23 @@ def get_classes(grade: str):
         return {"message": "クラス分けはまだされていません"}
 
     return classes
+# ------------------------------------休学生徒一覧---------------------
+@router.get("/suspended", response_model=list[StudentOut])
+def list_suspended_students():
+    data = load_data()
+
+    suspended = [s for s in data if s.get("status") == "休学"]
+
+    for s in suspended:
+        if s.get("attend_no") is not None:
+            s["attend_no"] = str(s["attend_no"])
+
+        photo = find_photo(s["id"])
+        s["photo"] = photo
+
+    return suspended
+
+
 
 # ---------------------------------------------------------
 # 生徒個別取得（動的ルート）
@@ -500,3 +558,59 @@ def get_student(student_id: str):
             return s
 
     raise HTTPException(status_code=404, detail="Student not found")
+
+@router.post("/{student_id}/suspend")
+def suspend_student(student_id: str, date: str = Query(...)):
+    student_id = student_id.lower()
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id:
+
+            if s.get("status") == "休学":
+                return {"status": "already_suspended"}
+
+            s["status"] = "休学"
+
+            if "suspension_history" not in s:
+                s["suspension_history"] = []
+
+            s["suspension_history"].append({
+                "start": date,
+                "end": None
+            })
+
+            save_data(data)
+            return {"status": "休学に変更しました"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
+
+
+@router.post("/{student_id}/return")
+def return_student(student_id: str, date: str = Query(...)):
+    student_id = student_id.lower()
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id:
+
+            if s.get("status") != "休学":
+                return {"status": "not_suspended"}
+
+            s["status"] = "在籍" 
+
+            # ⭐ RESETAR CLASSE E NÚMERO DE CHAMADA ⭐
+            s["class_name"] = ""
+            s["attend_no"] = None
+
+            history = s.get("suspension_history", [])
+            for entry in reversed(history):
+                if entry["end"] is None:
+                    entry["end"] = date
+                    break
+
+            save_data(data)
+            return {"status": "在籍に戻しました"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
+

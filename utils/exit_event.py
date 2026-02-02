@@ -20,18 +20,33 @@ def load_exit_events():
             events = json.load(f)
 
         for e in events:
-            year = str(int(e["school_year"]))
+
+            # tenta vários nomes possíveis de ano
+            year = (
+                e.get("school_year")
+                or e.get("year")
+                or e.get("exit_year")
+                or e.get("graduated_year")
+                or ""
+            )
+
+            year = str(year)
 
             if year not in result:
                 result[year] = []
 
+            student = e.get("student", {})
+
             result[year].append({
                 "type": event_type,
                 "student": {
-                    "id": e["student"]["id"],
-                    "name": e["student"]["name"],
-                    "kana": e["student"]["kana"],
-                    "gender": e["student"]["gender"]
+                    "id": student.get("id", ""),
+                    "name": student.get("name", ""),
+                    "kana": student.get("kana", ""),
+                    "gender": student.get("gender", ""),
+                    # preserva campos extras
+                    **{k: v for k, v in student.items()
+                       if k not in ["id", "name", "kana", "gender"]}
                 }
             })
 

@@ -13,7 +13,22 @@ def load_data():
     if not os.path.exists(STUDENTS_FILE):
         return []
     with open(STUDENTS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    changed = False
+    for s in data:
+        if "status" not in s or not s["status"]:
+            s["status"] = "在籍"
+            changed = True
+
+        if "suspension_history" not in s:
+            s["suspension_history"] = []
+            changed = True
+
+    if changed:
+        save_data(data)
+
+    return data
 
 def save_data(data):
     with open(STUDENTS_FILE, "w", encoding="utf-8") as f:
