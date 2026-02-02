@@ -306,7 +306,6 @@ async def import_students_csv(file: UploadFile = File(...)):
     # Lê CSV do Numbers corretamente (UTF-8 + BOM + quebras internas)
     text = raw_bytes.decode("utf-8-sig")
     stream = io.StringIO(text)
-
     reader = csv.DictReader(stream, delimiter=",", quotechar='"')
 
 
@@ -364,54 +363,52 @@ async def import_students_csv(file: UploadFile = File(...)):
 
         raw_course = converted.get("course", "").strip()
 
-        if "全" in raw_course:
-            course_code = "z"
-            converted["course"] = "全"
-        elif "水" in raw_course:
-            course_code = "w"
-            converted["course"] = "水"
-        elif "集" in raw_course:
-            course_code = "s"
-            converted["course"] = "集"
-        else:
-            raise HTTPException(status_code=400, detail=f"コースが判別できません: {raw_course}")
+        if "全" in raw_course: 
+            course_code = "z" 
+            converted["course"] = "全" 
+        elif "水" in raw_course: 
+            course_code = "w" 
+            converted["course"] = "水" 
+        elif "集" in raw_course: 
+            course_code = "s" 
+            converted["course"] = "集" 
+        else: raise HTTPException(status_code=400, detail=f"コースが判別できません: {raw_course}")
 
         year = extract_year(converted)
 
-        raw_id = converted.get("id", "").strip().lower()
+        # --- VERIFICAÇÃO DE DUPLICIDADE --- 
+        duplicate = False 
+        for s in students: 
+            if ( 
+                s.get("name") == converted.get("name") and 
+                s.get("birth_date") == converted.get("birth_date") and 
+                s.get("guardian1") == converted.get("guardian1") and 
+                s.get("address1") == converted.get("address1") 
+            ): 
+                duplicate = True 
+                break 
+        if duplicate: 
+            continue 
+        # ----------------------------------
 
+        raw_id = converted.get("id", "").strip().lower()
         if raw_id:
             converted["id"] = raw_id
         else:
-            converted["id"] = generate_student_id(year, course_code)
+            converted["id"] = generate_student_id(year, course_code, students)
 
         if not converted.get("grade"):
             converted["grade"] = "1"
 
         converted["class_name"] = converted.get("class_name", "")
 
-        # --- VERIFICAÇÃO DE DUPLICIDADE ---
-        duplicate = False
-        for s in students:
-            if (
-                s.get("name") == converted.get("name") and
-                s.get("birth_date") == converted.get("birth_date") and
-                s.get("guardian1") == converted.get("guardian1") and
-                s.get("address1") == converted.get("address1")
-            ):
-                duplicate = True
-                break
-
-        if duplicate:
-            # ignora aluno duplicado
-            continue
         # ----------------------------------
 
         if "status" not in converted or not converted["status"]:
             converted["status"] = "在籍"
 
-
         students.append(converted)
+        
     save_data(students)
 
     with open(hash_path, "w", encoding="utf-8") as f:
@@ -439,15 +436,27 @@ def create_student(student: StudentCreate):
         ): 
             raise HTTPException(status_code=400, detail="duplicate_student") 
     # ----------------------------------
+    raw_course = data_dict.get("course", "").strip()
 
-
+    if "全" in raw_course:
+        course_code = "z"
+    elif "水" in raw_course:
+        course_code = "w"
+    elif "集" in raw_course:
+        course_code = "s"
+    else:
+        raise HTTPException(status_code=400, detail=f"コースが判別できません: {raw_course}")
 
     year = extract_year(data_dict)
-    new_id = generate_student_id(year, data_dict["course"])
+
+    new_id = generate_student_id(year, course_code, data)
     data_dict["id"] = new_id.lower()
+
     data_dict["status"] = "在籍"
+
     data.append(data_dict)
     save_data(data)
+    
     return data_dict
 
 # ---------------------------------------------------------
