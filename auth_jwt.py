@@ -6,7 +6,7 @@ import os
 
 SECRET_KEY = os.environ.get("JWT_SECRET", "d83c762d1b82d9b573340a6b010c81cd5ce2e0ebe3aac361f5a2271cde6e32c5")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 REFRESH_TOKEN_EXPIRE_DAYS = 1 # 1 dia
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
