@@ -64,6 +64,8 @@ class StudentCreate(BaseModel):
     address2: Optional[str] = None
     phone: Optional[str] = None
     phone_label: Optional[str] = None
+    father: str | None = None 
+    mother: str | None = None
     guardian1: Optional[str] = None
     guardian1_kana: Optional[str] = None
     guardian_address: Optional[str] = None
@@ -103,6 +105,8 @@ class StudentUpdate(BaseModel):
     address2: Optional[str] = None
     phone: Optional[str] = None
     phone_label: Optional[str] = None
+    father: str | None = None 
+    mother: str | None = None
     guardian1: Optional[str] = None
     guardian1_kana: Optional[str] = None
     guardian_address: Optional[str] = None
@@ -145,6 +149,8 @@ class StudentOut(StudentBase):
     address2: Optional[str] = None
     phone: Optional[str] = None
     phone_label: Optional[str] = None
+    father: str | None = None 
+    mother: str | None = None
     guardian1: Optional[str] = None
     guardian1_kana: Optional[str] = None
     guardian_address: Optional[str] = None
