@@ -332,6 +332,8 @@ async def import_students_csv(file: UploadFile = File(...)):
         "住所２（アパート・マンション名など）": "address2",
         "電話番号": "phone",
         "電話ラベル（父、母、自宅）": "phone_label",
+        "父": "father",
+        "母": "mother",
         "保護者名１": "guardian1",
         "保護者名１ふりがな": "guardian1_kana",
         "保護者住所": "guardian_address",
