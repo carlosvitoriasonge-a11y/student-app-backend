@@ -4,6 +4,8 @@ from schemas.student import StudentCreate, StudentUpdate, StudentOut
 from utils.data import load_data, save_data
 from utils.id_generator import generate_student_id
 from datetime import datetime
+from pydantic import BaseModel
+from typing import List, Optional
 
 import os
 import json
@@ -547,6 +549,95 @@ def list_suspended_students():
 
     return suspended
 
+class Seat(BaseModel): 
+    row: int
+    col: int
+    active: bool
+    student_id: Optional[str] = None
+
+class SeatingState(BaseModel):
+    seats: List[Seat]
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
+SEATING_FILE = os.path.join(DATA_DIR, "seating.json")
+
+
+
+def load_seating():
+    if not os.path.exists(SEATING_FILE):
+        return {}
+    
+    with open(SEATING_FILE, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+
+            if not isinstance(data, dict):
+                return {}
+            return data
+        
+        except json.JSONDecodeError:
+            return {}
+
+
+def save_seating_json(data):
+    with open(SEATING_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def reset_seating_json():
+    save_seating_json([])
+
+
+# -----------------------------
+# GET: carregar estado
+# -----------------------------
+@router.get("/seating") 
+def get_seating(course: str, grade: str, class_name: str): 
+    key = f"{course}-{grade}-{class_name}" 
+    data = load_seating() 
+    
+    if key not in data: 
+        return { 
+            "auto": [], 
+            "custom": [] 
+        } 
+    return data[key]
+
+
+# -----------------------------
+# POST: salvar estado
+# -----------------------------
+@router.post("/seating/save") 
+def save_seating(payload: dict): 
+    course = payload["course"] 
+    grade = payload["grade"] 
+    class_name = payload["class_name"] 
+    type_ = payload["type"] # "auto" ou "custom" 
+    seats = payload["seats"] 
+    
+    key = f"{course}-{grade}-{class_name}" 
+    
+    data = load_seating() 
+    
+    if key not in data: 
+        data[key] = {"auto": [], "custom": []} 
+        
+    data[key][type_] = seats 
+    
+    save_seating_json(data) 
+    
+    return {"status": "ok"}
+
+
+# (opcional) RESET manual para クラス分け
+@router.post("/seating/reset")
+def reset_seating():
+    reset_seating_json()
+    return {"status": "reset"}
+
+
 
 
 # ---------------------------------------------------------
@@ -624,4 +715,11 @@ def return_student(student_id: str, date: str = Query(...)):
             return {"status": "在籍に戻しました"}
 
     raise HTTPException(status_code=404, detail="Student not found")
+
+@router.get("/server_time") 
+def server_time(): 
+    now = datetime.now() 
+    return { 
+        "iso": now.isoformat() 
+    }
 
