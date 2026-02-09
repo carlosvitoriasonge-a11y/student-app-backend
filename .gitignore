@@ -18,6 +18,7 @@ env/
 # =========================
 data/*
 !data/student_template.csv
+attendance/
 
 
 # =========================

@@ -53,11 +53,22 @@ from routers.joseki import router as joseki_router
 from routers.tengaku import router as tengaku_router
 from routers.taigaku import router as taigaku_router
 from routers.exit_list import router as exit_list_router
+from routers.seating import router as seating_router
+from routers.attendance import router as attendance_router
+from routers.attendance_stats import router as attendance_stats_router
 
 app = FastAPI(
     title="Student Management API",
     redirect_slashes=True
 )
+
+app.include_router(
+    seating_router,
+    prefix="/api/seating",
+    tags=["Seating"],
+    dependencies=[Depends(verify_token)]
+)
+
 
 # -------------------------------
 # CORS
@@ -190,6 +201,9 @@ app.include_router(course_change_router, prefix="/api/students", tags=["CourseCh
 app.include_router(joseki_router, prefix="/api/students", tags=["Joseki"], dependencies=[Depends(verify_token)])
 app.include_router(tengaku_router, prefix="/api/students", tags=["Tengaku"], dependencies=[Depends(verify_token)])
 app.include_router(taigaku_router, prefix="/api/students", tags=["Taigaku"], dependencies=[Depends(verify_token)])
+app.include_router(attendance_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
+app.include_router(attendance_stats_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
+
 
 @app.get("/api/system/status")
 def system_status():
