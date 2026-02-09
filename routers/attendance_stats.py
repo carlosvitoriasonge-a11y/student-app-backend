@@ -35,12 +35,26 @@ def get_attendance_stats(
 
     stats = compute_attendance_stats(data)
 
+    dailyAttendance = {}
+    for date, entry in data.items():
+        if "students" not in entry:
+            continue
+        dailyAttendance[date] = {}
+
+        for student_id, status in entry["students"].items():
+            if status not in dailyAttendance[date]:
+                dailyAttendance[date][status] = 0
+
+            dailyAttendance[date][status] += 1
+
+
     return {
     "course": course,
     "grade": grade,
     "class_name": class_name,
     "school_year": school_year,
     "stats": stats["class_stats"],        # estatística da turma
-    "student_stats": stats["students"]    # estatística por aluno
-}
+    "student_stats": stats["students"],    # estatística por aluno
+    "dailyAttendance": dailyAttendance   
+    }
 
