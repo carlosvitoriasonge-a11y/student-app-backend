@@ -56,6 +56,27 @@ def save_attendance(payload: dict):
 
     path = attendance_path(class_id, date)
 
+    # Se todos os alunos estão 未記録 → apagar o registro do dia
+    if all(status == "未記録" for status in students.values()):
+        # Se o arquivo existe, remover apenas o dia
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Remove o dia do arquivo
+            if date in data:
+                del data[date]
+
+            # Se não sobrou nada → apagar o arquivo inteiro
+            if len(data) == 0:
+                os.remove(path)
+            else:
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+
+        return {"status": "deleted"}
+
+
     # carrega arquivo existente ou cria novo
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
