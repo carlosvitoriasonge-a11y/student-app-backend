@@ -56,6 +56,8 @@ from routers.exit_list import router as exit_list_router
 from routers.seating import router as seating_router
 from routers.attendance import router as attendance_router
 from routers.attendance_stats import router as attendance_stats_router
+from routers.subjects import router as subjects_router
+from routers.teachers import router as teachers_router
 
 app = FastAPI(
     title="Student Management API",
@@ -68,6 +70,21 @@ app.include_router(
     tags=["Seating"],
     dependencies=[Depends(verify_token)]
 )
+
+app.include_router(
+    subjects_router,
+    prefix="/api/subjects",
+    tags=["Subjects"],
+    dependencies=[Depends(verify_token)]
+)
+
+
+app.include_router( 
+    teachers_router, 
+    prefix="/api/teachers", 
+    tags=["Teachers"], 
+    dependencies=[Depends(verify_token)] )
+
 
 
 # -------------------------------
