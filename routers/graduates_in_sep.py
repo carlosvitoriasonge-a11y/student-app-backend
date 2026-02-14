@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from utils.data import load_data, save_data
 import json, os
 from datetime import datetime
@@ -36,7 +36,7 @@ def load_teachers():
         return json.load(f)
 
 # -----------------------------
-# FIND HOMEROOM TEACHER
+# FIND ALL HOMEROOM TEACHERS
 # -----------------------------
 def find_teachers(teachers, grade, class_name, course):
     result = []
@@ -51,9 +51,8 @@ def find_teachers(teachers, grade, class_name, course):
     return result
 
 
-
 # -----------------------------
-# ATTENDANCE HELPERS
+# ATTENDANCE HELPERS (copiado do promote)
 # -----------------------------
 ATTENDANCE_MAP = {
     "出席": {"attendance": 1},
@@ -66,6 +65,11 @@ ATTENDANCE_MAP = {
     "遅刻と早退": {"attendance": 1, "late": 1, "early": 1}
 }
 
+def load_attendance_file(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def get_attempt_suffix(student, prefix):
     attempts = 0
@@ -73,14 +77,6 @@ def get_attempt_suffix(student, prefix):
         if key.startswith(f"{prefix}_school_days"):
             attempts += 1
     return "" if attempts == 0 else f"({attempts + 1})"
-
-
-def load_attendance_file(path):
-    if not os.path.exists(path):
-        return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
 
 def calculate_attendance_for_year(student, prefix, course, grade, class_name, nendo):
     class_id = f"{course}-{grade}-{class_name}"
@@ -135,24 +131,19 @@ def calculate_attendance_for_year(student, prefix, course, grade, class_name, ne
 
 
 # -----------------------------
-# PROMOTE ROUTE
+# GRADUATE IN SEPTEMBER
 # -----------------------------
-@router.post("/promote")
-def promote_students(payload: dict):
+@router.post("/graduate_sep")
+def graduate_sep(payload: dict):
     grade = str(payload.get("grade"))
-    promote_ids = payload.get("promote_ids", [])
+    graduate_ids = payload.get("graduate_ids", [])
 
     students = load_data()
     graduates = load_graduates()
     teachers = load_teachers()
 
-    promoted = 0
-    stayed = 0
-    graduated = 0
-
     new_students = []
 
-    # prefix map
     prefix_map = {
         "1": "1st_year",
         "2": "2nd_year",
@@ -162,15 +153,25 @@ def promote_students(payload: dict):
     for s in students:
         s_grade = str(s["grade"])
 
-        # 学年違い → そのまま残す
+        # não é do ano alvo → mantém
         if s_grade != grade:
             new_students.append(s)
             continue
 
-        # prefix for this student's current year
+        # não está marcado → mantém
+        if s["id"] not in graduate_ids:
+            new_students.append(s)
+            continue
+
+        # prefixo do ano atual
         prefix = prefix_map[grade]
 
-        # find homeroom teacher
+        # ano escolar (nendo)
+        this_year = datetime.now().year
+        nendo_num = this_year - 1
+        nendo = f"{nendo_num}年度"
+
+        # professores (lista)
         teacher_names = find_teachers(
             teachers,
             s_grade,
@@ -178,131 +179,34 @@ def promote_students(payload: dict):
             s.get("course", "")
         )
 
+        # salvar histórico final
+        s[f"{prefix}_class"] = s.get("class_name", "")
+        s[f"{prefix}_attendance_no"] = s.get("attend_no", "")
+        s[f"{prefix}_teachers"] = teacher_names
+        s[f"{prefix}_nendo"] = nendo
 
+        # salvar attendance
+        calculate_attendance_for_year(
+            s,
+            prefix,
+            s.get("course", ""),
+            s.get("grade", ""),
+            s.get("class_name", ""),
+            nendo_num
+        )
 
-        # -----------------------------
-        # CHECK IF STUDENT WAS SUSPENDED THIS YEAR (休学)
-        # -----------------------------
-        this_year = datetime.now().year
+        # graduação de setembro
+        s["graduated_year"] = f"{nendo}9月卒業"
 
-        # Japanese school year: April 1 → March 31
-        start_of_year = datetime(this_year - 1, 4, 1)
-        end_of_year = datetime(this_year, 3, 31)
+        # limpar dados ativos
+        s["class_name"] = ""
+        s["attend_no"] = ""
 
-        was_suspended_this_year = False
+        graduates.append(s)
 
-        for entry in s.get("suspension_history", []):
-            start = datetime.fromisoformat(entry["start"])
-            end = datetime.fromisoformat(entry["end"]) if entry["end"] else datetime.max
-
-            # If suspension overlaps the school year
-            if start <= end_of_year and end >= start_of_year:
-                was_suspended_this_year = True
-                break
-
-        if was_suspended_this_year:
-            this_year = datetime.now().year
-            nendo_num = this_year - 1
-            nendo = f"{nendo_num}年度"
-
-            s[f"{prefix}_nendo"] = nendo
-            s[f"{prefix}_{nendo_num}_status"] = "休学"
-
-            # salvar presença mesmo em 休学
-            calculate_attendance_for_year(
-                s,
-                prefix,
-                s.get("course", ""),
-                s.get("grade", ""),
-                s.get("class_name", ""),
-                nendo_num
-            )
-
-            new_students.append(s)
-            continue
-
-
-
-
-        # -----------------------------
-        # PROMOTED OR GRADUATED
-        # -----------------------------
-        if s["id"] in promote_ids:
-
-            # ★ SAVE CLASS / NUMBER / TEACHER FOR THIS YEAR
-
-            this_year = datetime.now().year 
-            nendo = f"{this_year - 1}年度"
-
-        
-            s[f"{prefix}_class"] = s.get("class_name", "")
-            s[f"{prefix}_attendance_no"] = s.get("attend_no", "")
-            s[f"{prefix}_teachers"] = teacher_names or ""
-            s[f"{prefix}_nendo"] = nendo
-
-
-            # ⭐⭐⭐ COLE AQUI ⭐⭐⭐ 
-            # # CALCULAR HISTÓRICO DE PRESENÇA 
-            calculate_attendance_for_year( 
-                s, 
-                prefix, s.get("course", ""), 
-                s.get("grade", ""), 
-                s.get("class_name", ""), 
-                this_year - 1 # nendo numérico 
-            ) 
-            # ⭐⭐⭐ FIM DA INSERÇÃO ⭐⭐⭐
-
-            # ★ 3年生 → 卒業
-            if grade == "3":
-                s["graduated_year"] = f"{nendo}3月卒業"
-
-                # 卒業生はクラス情報を消す
-                s["class_name"] = ""
-                s["attend_no"] = ""
-
-                graduates.append(s)
-                graduated += 1
-
-            else:
-                # ★ 昇級処理
-                s["grade"] = str(int(grade) + 1)
-
-                # 昇級後はクラスと出席番号をリセット
-                s["class_name"] = ""
-                s["attend_no"] = ""
-
-                promoted += 1
-                new_students.append(s)
-
-        # -----------------------------
-        # STAYED (REPEATED)
-        # -----------------------------
-        else:
-            this_year = datetime.now().year
-            nendo = this_year - 1
-
-            # ★ SAVE REPEATED FLAG
-            s[f"{prefix}_{nendo}"] = "repeated"
-
-
-            calculate_attendance_for_year( 
-                s, 
-                prefix, 
-                s.get("course", ""), 
-                s.get("grade", ""), 
-                s.get("class_name", ""), 
-                nendo 
-            )
-
-            stayed += 1
-            new_students.append(s)
-
-    # 保存
     save_data(new_students)
     save_graduates(graduates)
 
     return {
-        "promoted": promoted,
-        "stayed": stayed,
-        "graduated": graduated
+        "graduated": len(graduate_ids)
     }

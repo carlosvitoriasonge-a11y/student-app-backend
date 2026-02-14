@@ -60,6 +60,9 @@ from routers.subjects import router as subjects_router
 from routers.teachers import router as teachers_router
 from routers.load_classes import router as load_classes_router
 from routers.students_by_class import router as students_by_class_router
+from routers.graduates_in_sep import router as graduates_in_sep_router
+from routers.calendar import router as calendar_router
+
 
 
 
@@ -227,6 +230,9 @@ app.include_router(taigaku_router, prefix="/api/students", tags=["Taigaku"], dep
 app.include_router(attendance_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
 app.include_router(attendance_stats_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
 app.include_router(load_classes_router, prefix="/api", tags=["Classes"], dependencies=[Depends(verify_token)])
+app.include_router(graduates_in_sep_router,prefix="/api",tags=["GraduatesInSep"],dependencies=[Depends(verify_token)])
+app.include_router(calendar_router, prefix="/api/google", tags=["Google"])
+
 
 
 
