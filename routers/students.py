@@ -640,6 +640,102 @@ def reset_seating():
 
 
 
+
+
+# -----------------------------
+# FILE PATHS
+# -----------------------------
+GRAD_FILE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "data", "graduates.json")
+)
+
+TEACHERS_FILE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "data", "teachers.json")
+)
+
+
+
+def load_teachers():
+    if not os.path.exists(TEACHERS_FILE):
+        return []
+    with open(TEACHERS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# -----------------------------
+# FIND HOMEROOM TEACHER
+# -----------------------------
+def find_teacher(teachers, grade, class_name, course):
+    for t in teachers:
+        for h in t.get("homerooms", []):
+            if (
+                str(h["grade"]) == str(grade)
+                and h["class_name"] == class_name
+                and h["course"] == course
+            ):
+                return t["name"]
+    return None
+
+
+@router.post("/{student_id}/suspend")
+def suspend_student(student_id: str, date: str = Query(...)):
+    student_id = student_id.lower()
+    data = load_data()
+    teachers = load_teachers()  # necessário para achar o homeroom teacher
+
+    for s in data:
+        if s["id"].lower() == student_id:
+
+            if s.get("status") == "休学":
+                return {"status": "already_suspended"}
+
+            # ⭐ SALVAR HISTÓRICO DO ANO ANTES DE VIRAR 休学 ⭐
+            this_year = datetime.now().year
+            nendo = f"{this_year - 1}年度"
+
+            prefix_map = { "1": "1st_year", "2": "2nd_year", "3": "3rd_year" }
+            prefix = prefix_map[str(s["grade"])]
+
+            # homeroom teacher atual
+            teacher_name = find_teacher(
+                teachers,
+                s["grade"],
+                s.get("class_name", ""),
+                s.get("course", "")
+            )
+
+            # salvar classe, número, teacher e nendo
+            s[f"{prefix}_class"] = s.get("class_name", "")
+            s[f"{prefix}_attendance_no"] = s.get("attend_no", "")
+            s[f"{prefix}_teacher"] = teacher_name or ""
+            s[f"{prefix}_nendo"] = nendo
+            s[f"{prefix}_{this_year - 1}_status"] = "休学"
+
+            # ⭐ AGORA SIM, MUDA PARA 休学 ⭐
+            s["status"] = "休学"
+
+            # histórico administrativo
+            if "suspension_history" not in s:
+                s["suspension_history"] = []
+
+            s["suspension_history"].append({
+                "start": date,
+                "end": None
+            })
+
+            save_data(data)
+            return {"status": "休学に変更しました"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
+
+@router.get("/server_time") 
+def server_time(): 
+    now = datetime.now() 
+    return { 
+        "iso": now.isoformat() 
+    }
+
+
+
 # ---------------------------------------------------------
 # 生徒個別取得（動的ルート）
 # ---------------------------------------------------------
@@ -660,66 +756,4 @@ def get_student(student_id: str):
             return s
 
     raise HTTPException(status_code=404, detail="Student not found")
-
-@router.post("/{student_id}/suspend")
-def suspend_student(student_id: str, date: str = Query(...)):
-    student_id = student_id.lower()
-    data = load_data()
-
-    for s in data:
-        if s["id"].lower() == student_id:
-
-            if s.get("status") == "休学":
-                return {"status": "already_suspended"}
-
-            s["status"] = "休学"
-
-            if "suspension_history" not in s:
-                s["suspension_history"] = []
-
-            s["suspension_history"].append({
-                "start": date,
-                "end": None
-            })
-
-            save_data(data)
-            return {"status": "休学に変更しました"}
-
-    raise HTTPException(status_code=404, detail="Student not found")
-
-
-@router.post("/{student_id}/return")
-def return_student(student_id: str, date: str = Query(...)):
-    student_id = student_id.lower()
-    data = load_data()
-
-    for s in data:
-        if s["id"].lower() == student_id:
-
-            if s.get("status") != "休学":
-                return {"status": "not_suspended"}
-
-            s["status"] = "在籍" 
-
-            # ⭐ RESETAR CLASSE E NÚMERO DE CHAMADA ⭐
-            s["class_name"] = ""
-            s["attend_no"] = None
-
-            history = s.get("suspension_history", [])
-            for entry in reversed(history):
-                if entry["end"] is None:
-                    entry["end"] = date
-                    break
-
-            save_data(data)
-            return {"status": "在籍に戻しました"}
-
-    raise HTTPException(status_code=404, detail="Student not found")
-
-@router.get("/server_time") 
-def server_time(): 
-    now = datetime.now() 
-    return { 
-        "iso": now.isoformat() 
-    }
 

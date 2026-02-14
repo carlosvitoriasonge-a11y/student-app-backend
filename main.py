@@ -58,6 +58,11 @@ from routers.attendance import router as attendance_router
 from routers.attendance_stats import router as attendance_stats_router
 from routers.subjects import router as subjects_router
 from routers.teachers import router as teachers_router
+from routers.load_classes import router as load_classes_router
+from routers.students_by_class import router as students_by_class_router
+
+
+
 
 app = FastAPI(
     title="Student Management API",
@@ -98,6 +103,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(students_by_class_router, prefix="/api", tags=["Students"], dependencies=[Depends(verify_token)])
 # -------------------------------
 # LOGIN
 # -------------------------------
@@ -220,6 +226,8 @@ app.include_router(tengaku_router, prefix="/api/students", tags=["Tengaku"], dep
 app.include_router(taigaku_router, prefix="/api/students", tags=["Taigaku"], dependencies=[Depends(verify_token)])
 app.include_router(attendance_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
 app.include_router(attendance_stats_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
+app.include_router(load_classes_router, prefix="/api", tags=["Classes"], dependencies=[Depends(verify_token)])
+
 
 
 @app.get("/api/system/status")
