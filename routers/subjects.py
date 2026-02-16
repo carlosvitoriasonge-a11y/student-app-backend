@@ -90,6 +90,15 @@ def delete_subject(subject_id: str):
 
     raise HTTPException(status_code=404, detail="Matéria não encontrada.")
 
+@router.get("/")
+def get_subjects(course: str, grade: str):
+    subjects = load_json("subjects.json")
+    return [
+        s for s in subjects
+        if s.get("course") == course and str(s.get("grade")) == str(grade)
+    ]
+
+
 
 
 

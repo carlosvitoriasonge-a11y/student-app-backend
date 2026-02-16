@@ -34,6 +34,72 @@ def load_teachers():
         return []
     with open(TEACHERS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
+    
+def process_subject_attendance(class_id: str, nendo: int, student: dict):
+    """
+    Lê attendance_sub/<class_id>-<nendo>.json
+    e atualiza o students.json com estatísticas por subject_group
+    SOMENTE para este aluno.
+    """
+
+    path = f"attendance_sub/{class_id}-{nendo}.json"
+    if not os.path.exists(path):
+        return  # nenhuma aula registrada
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # subject_group → counters
+    stats = {}  # { "論理表現Ⅰ": { present, late, lazy, forget, absent, total } }
+
+    for date, periods in data.items():
+        for period, info in periods.items():
+            subject_group = info["subject"]
+            status = info["students"].get(student["id"])
+
+            if not status:
+                continue
+
+            if subject_group not in stats:
+                stats[subject_group] = {
+                    "present": 0,
+                    "late": 0,
+                    "lazy": 0,
+                    "forget": 0,
+                    "absent": 0,
+                    "total": 0
+                }
+
+            # regras
+            if status == "出席":
+                stats[subject_group]["present"] += 1
+                stats[subject_group]["total"] += 1
+
+            elif status == "欠席":
+                stats[subject_group]["absent"] += 1
+
+            elif status == "遅刻":
+                stats[subject_group]["present"] += 1
+                stats[subject_group]["late"] += 1
+                stats[subject_group]["total"] += 1
+
+            elif status == "退学・居眠り":
+                stats[subject_group]["present"] += 1
+                stats[subject_group]["lazy"] += 1
+                stats[subject_group]["total"] += 1
+
+            elif status == "忘れ物":
+                stats[subject_group]["present"] += 1
+                stats[subject_group]["forget"] += 1
+                stats[subject_group]["total"] += 1
+
+            # 未記録 → ignora
+
+    # aplicar no student.json
+    for subject_group, counters in stats.items():
+        student[subject_group] = counters
+
+
 
 # -----------------------------
 # FIND HOMEROOM TEACHER
@@ -252,6 +318,13 @@ def promote_students(payload: dict):
             ) 
             # ⭐⭐⭐ FIM DA INSERÇÃO ⭐⭐⭐
 
+            # ★ SUBJECT attendance 
+            process_subject_attendance( 
+                f"{s.get('course','')}-{s.get('grade','')}-{s.get('class_name','')}", 
+                this_year - 1, 
+                s 
+            )
+
             # ★ 3年生 → 卒業
             if grade == "3":
                 s["graduated_year"] = f"{nendo}3月卒業"
@@ -292,6 +365,13 @@ def promote_students(payload: dict):
                 s.get("grade", ""), 
                 s.get("class_name", ""), 
                 nendo 
+            )
+
+            # ★ SUBJECT attendance (faltava aqui) 
+            process_subject_attendance( 
+                f"{s.get('course','')}-{s.get('grade','')}-{s.get('class_name','')}", 
+                nendo, 
+                s 
             )
 
             stayed += 1

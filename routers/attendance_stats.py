@@ -42,10 +42,16 @@ def get_attendance_stats(
         dailyAttendance[date] = {}
 
         for student_id, status in entry["students"].items():
+
+            # IGNORA alunos 休学
+            if status == "休学":
+                continue
+
             if status not in dailyAttendance[date]:
                 dailyAttendance[date][status] = 0
 
             dailyAttendance[date][status] += 1
+
 
 
     return {
@@ -57,4 +63,5 @@ def get_attendance_stats(
     "student_stats": stats["students"],    # estatística por aluno
     "dailyAttendance": dailyAttendance   
     }
+
 
