@@ -229,7 +229,7 @@ app.include_router(joseki_router, prefix="/api/students", tags=["Joseki"], depen
 app.include_router(tengaku_router, prefix="/api/students", tags=["Tengaku"], dependencies=[Depends(verify_token)])
 app.include_router(taigaku_router, prefix="/api/students", tags=["Taigaku"], dependencies=[Depends(verify_token)])
 app.include_router(attendance_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
-app.include_router(attendance_stats_router,prefix="/api/attendance",tags=["Attendance"],dependencies=[Depends(verify_token)])
+app.include_router(attendance_stats_router,prefix="/api/attendance_stats",tags=["AttendanceStats"],dependencies=[Depends(verify_token)])
 app.include_router(load_classes_router, prefix="/api", tags=["Classes"], dependencies=[Depends(verify_token)])
 app.include_router(graduates_in_sep_router,prefix="/api",tags=["GraduatesInSep"],dependencies=[Depends(verify_token)])
 app.include_router(attendance_sub_router, prefix="/api/attendance_sub", tags=["AttendanceSub"],dependencies=[Depends(verify_token)])
