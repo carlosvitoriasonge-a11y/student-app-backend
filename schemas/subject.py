@@ -11,13 +11,21 @@ class SubjectBase(BaseModel):
     required_attendance: int = Field(..., ge=0, description="認定に必要な最低出席日数")
     required_reports: int = Field(..., ge=0, description="必要なレポート数")
     type: str = Field(..., pattern="^(required|optional)$", description="必須科目 or 任意科目")
-    grade: int = Field(..., ge=1, le=3, description="学年（1〜3）") # ← AQUI
+    grade: int = Field(..., ge=1, le=3, description="学年（1〜3）")
     teacher_ids: List[Union[int, str]] = Field(default_factory=list, description="担当教員のIDリスト")
-    course: str = Field( "全", description="コース（例：全・水・集）。未設定の場合は「全」。")
+    course: str = Field("全", description="コース（例：全・水・集）。未設定の場合は「全」。")
+
+    # ⭐ NOVO CAMPO — com default seguro e compatível
+    exam_frequency: str = Field(
+        "0",
+        pattern="^(4|1|0)$",
+        description="試験回数: 4=年4回, 1=年1回, 0=試験なし"
+    )
 
 
 class SubjectCreate(SubjectBase):
     pass
+
 
 class SubjectOut(SubjectBase):
     id: str

@@ -19,6 +19,11 @@ env/
 data/*
 !data/student_template.csv
 attendance/
+attendance_sub/
+reports/
+photos/
+*.json
+
 
 
 # =========================

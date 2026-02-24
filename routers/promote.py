@@ -36,21 +36,14 @@ def load_teachers():
         return json.load(f)
     
 def process_subject_attendance(class_id: str, nendo: int, student: dict):
-    """
-    Lê attendance_sub/<class_id>-<nendo>.json
-    e atualiza o students.json com estatísticas por subject_group
-    SOMENTE para este aluno.
-    """
-
     path = f"attendance_sub/{class_id}-{nendo}.json"
     if not os.path.exists(path):
-        return  # nenhuma aula registrada
+        return
 
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # subject_group → counters
-    stats = {}  # { "論理表現Ⅰ": { present, late, lazy, forget, absent, total } }
+    stats = {}
 
     for date, periods in data.items():
         for period, info in periods.items():
@@ -70,7 +63,6 @@ def process_subject_attendance(class_id: str, nendo: int, student: dict):
                     "total": 0
                 }
 
-            # regras
             if status == "出席":
                 stats[subject_group]["present"] += 1
                 stats[subject_group]["total"] += 1
@@ -93,12 +85,8 @@ def process_subject_attendance(class_id: str, nendo: int, student: dict):
                 stats[subject_group]["forget"] += 1
                 stats[subject_group]["total"] += 1
 
-            # 未記録 → ignora
-
-    # aplicar no student.json
     for subject_group, counters in stats.items():
         student[subject_group] = counters
-
 
 
 # -----------------------------
@@ -117,7 +105,6 @@ def find_teachers(teachers, grade, class_name, course):
     return result
 
 
-
 # -----------------------------
 # ATTENDANCE HELPERS
 # -----------------------------
@@ -132,7 +119,6 @@ ATTENDANCE_MAP = {
     "遅刻と早退": {"attendance": 1, "late": 1, "early": 1}
 }
 
-
 def get_attempt_suffix(student, prefix):
     attempts = 0
     for key in student.keys():
@@ -140,13 +126,11 @@ def get_attempt_suffix(student, prefix):
             attempts += 1
     return "" if attempts == 0 else f"({attempts + 1})"
 
-
 def load_attendance_file(path):
     if not os.path.exists(path):
         return {}
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-
 
 def calculate_attendance_for_year(student, prefix, course, grade, class_name, nendo):
     class_id = f"{course}-{grade}-{class_name}"
@@ -201,12 +185,14 @@ def calculate_attendance_for_year(student, prefix, course, grade, class_name, ne
 
 
 # -----------------------------
-# PROMOTE ROUTE
+# PROMOTE ROUTE (REWRITTEN)
 # -----------------------------
 @router.post("/promote")
 def promote_students(payload: dict):
     grade = str(payload.get("grade"))
-    promote_ids = payload.get("promote_ids", [])
+
+    # normalize promote_ids
+    promote_ids = [str(pid).strip() for pid in payload.get("promote_ids", [])]
 
     students = load_data()
     graduates = load_graduates()
@@ -218,7 +204,6 @@ def promote_students(payload: dict):
 
     new_students = []
 
-    # prefix map
     prefix_map = {
         "1": "1st_year",
         "2": "2nd_year",
@@ -227,16 +212,14 @@ def promote_students(payload: dict):
 
     for s in students:
         s_grade = str(s["grade"])
+        sid = str(s["id"]).strip()
 
-        # 学年違い → そのまま残す
         if s_grade != grade:
             new_students.append(s)
             continue
 
-        # prefix for this student's current year
         prefix = prefix_map[grade]
 
-        # find homeroom teacher
         teacher_names = find_teachers(
             teachers,
             s_grade,
@@ -244,37 +227,18 @@ def promote_students(payload: dict):
             s.get("course", "")
         )
 
-
-
         # -----------------------------
-        # CHECK IF STUDENT WAS SUSPENDED THIS YEAR (休学)
+        # STATUS DECIDES PROMOTION
         # -----------------------------
-        this_year = datetime.now().year
+        student_status = s.get("status", "在籍")
 
-        # Japanese school year: April 1 → March 31
-        start_of_year = datetime(this_year - 1, 4, 1)
-        end_of_year = datetime(this_year, 3, 31)
-
-        was_suspended_this_year = False
-
-        for entry in s.get("suspension_history", []):
-            start = datetime.fromisoformat(entry["start"])
-            end = datetime.fromisoformat(entry["end"]) if entry["end"] else datetime.max
-
-            # If suspension overlaps the school year
-            if start <= end_of_year and end >= start_of_year:
-                was_suspended_this_year = True
-                break
-
-        if was_suspended_this_year:
+        if student_status in ["休学", "退学"]:
             this_year = datetime.now().year
             nendo_num = this_year - 1
-            nendo = f"{nendo_num}年度"
 
-            s[f"{prefix}_nendo"] = nendo
-            s[f"{prefix}_{nendo_num}_status"] = "休学"
+            s[f"{prefix}_nendo"] = f"{nendo_num}年度"
+            s[f"{prefix}_{nendo_num}_status"] = student_status
 
-            # salvar presença mesmo em 休学
             calculate_attendance_for_year(
                 s,
                 prefix,
@@ -284,102 +248,210 @@ def promote_students(payload: dict):
                 nendo_num
             )
 
+            process_subject_attendance(
+                f"{s.get('course','')}-{s.get('grade','')}-{s.get('class_name','')}",
+                nendo_num,
+                s
+            )
+
+            stayed += 1
             new_students.append(s)
             continue
-
-
-
 
         # -----------------------------
         # PROMOTED OR GRADUATED
         # -----------------------------
-        if s["id"] in promote_ids:
+        if sid in promote_ids:
 
-            # ★ SAVE CLASS / NUMBER / TEACHER FOR THIS YEAR
-
-            this_year = datetime.now().year 
+            this_year = datetime.now().year
             nendo = f"{this_year - 1}年度"
 
-        
             s[f"{prefix}_class"] = s.get("class_name", "")
             s[f"{prefix}_attendance_no"] = s.get("attend_no", "")
             s[f"{prefix}_teachers"] = teacher_names or ""
             s[f"{prefix}_nendo"] = nendo
 
-
-            # ⭐⭐⭐ COLE AQUI ⭐⭐⭐ 
-            # # CALCULAR HISTÓRICO DE PRESENÇA 
-            calculate_attendance_for_year( 
-                s, 
-                prefix, s.get("course", ""), 
-                s.get("grade", ""), 
-                s.get("class_name", ""), 
-                this_year - 1 # nendo numérico 
-            ) 
-            # ⭐⭐⭐ FIM DA INSERÇÃO ⭐⭐⭐
-
-            # ★ SUBJECT attendance 
-            process_subject_attendance( 
-                f"{s.get('course','')}-{s.get('grade','')}-{s.get('class_name','')}", 
-                this_year - 1, 
-                s 
+            calculate_attendance_for_year(
+                s,
+                prefix,
+                s.get("course", ""),
+                s.get("grade", ""),
+                s.get("class_name", ""),
+                this_year - 1
             )
 
-            # ★ 3年生 → 卒業
+            process_subject_attendance(
+                f"{s.get('course','')}-{s.get('grade','')}-{s.get('class_name','')}",
+                this_year - 1,
+                s
+            )
+
             if grade == "3":
                 s["graduated_year"] = f"{nendo}3月卒業"
-
-                # 卒業生はクラス情報を消す
                 s["class_name"] = ""
                 s["attend_no"] = ""
-
                 graduates.append(s)
                 graduated += 1
 
             else:
-                # ★ 昇級処理
                 s["grade"] = str(int(grade) + 1)
-
-                # 昇級後はクラスと出席番号をリセット
                 s["class_name"] = ""
                 s["attend_no"] = ""
-
                 promoted += 1
                 new_students.append(s)
 
-        # -----------------------------
-        # STAYED (REPEATED)
-        # -----------------------------
         else:
             this_year = datetime.now().year
             nendo = this_year - 1
 
-            # ★ SAVE REPEATED FLAG
             s[f"{prefix}_{nendo}"] = "repeated"
 
-
-            calculate_attendance_for_year( 
-                s, 
-                prefix, 
-                s.get("course", ""), 
-                s.get("grade", ""), 
-                s.get("class_name", ""), 
-                nendo 
+            calculate_attendance_for_year(
+                s,
+                prefix,
+                s.get("course", ""),
+                s.get("grade", ""),
+                s.get("class_name", ""),
+                nendo
             )
 
-            # ★ SUBJECT attendance (faltava aqui) 
-            process_subject_attendance( 
-                f"{s.get('course','')}-{s.get('grade','')}-{s.get('class_name','')}", 
-                nendo, 
-                s 
+            process_subject_attendance(
+                f"{s.get('course','')}-{s.get('grade','')}-{s.get('class_name','')}",
+                nendo,
+                s
             )
 
             stayed += 1
             new_students.append(s)
 
-    # 保存
     save_data(new_students)
     save_graduates(graduates)
+
+    # -----------------------------
+    # STATS GENERATION (unchanged)
+    # -----------------------------
+    from routers.attendance_stats_special import get_special_attendance_stats
+
+    this_year = datetime.now().year
+    nendo_num = this_year - 1
+    nendo = f"{nendo_num}"
+
+    ALL_COURSES = ["全", "水", "集"]
+
+    os.makedirs("data/attendance_stats", exist_ok=True)
+
+    for course in ALL_COURSES:
+        class_map = {}
+        for s in students:
+            if s.get("course") != course:
+                continue
+            g = str(s.get("grade"))
+            c = s.get("class_name", "")
+            if c:
+                class_id = f"{course}-{g}-{c}"
+                class_map.setdefault(class_id, {"course": course, "grade": g, "class_name": c})
+
+        final_stats = {}
+
+        for class_id, info in class_map.items():
+            g = info["grade"]
+            c = info["class_name"]
+
+            stats = get_special_attendance_stats(
+                course=course,
+                grade=g,
+                class_name=c,
+                sy=nendo_num
+            )
+
+            if isinstance(stats, dict) and "error" in stats:
+                continue
+
+            final_stats[class_id] = stats
+
+        out_path = f"data/attendance_stats/{nendo}_total_attendance_{course}.json"
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(final_stats, f, ensure_ascii=False, indent=2)
+
+        def init_term():
+            return {
+                "school_days": 0,
+                "required_attendance_days": 0,
+                "attendance": 0,
+                "absence": 0,
+                "late": 0,
+                "early": 0,
+                "mourn": 0,
+                "stopped": 0,
+                "justified": 0,
+                "attendance_rate": 0
+            }
+
+        def add_status(term, status):
+            if status in ATTENDANCE_MAP:
+                for k, v in ATTENDANCE_MAP[status].items():
+                    term[k] += v
+
+        def finalize_term(term):
+            required = term["school_days"] - term["mourn"] - term["stopped"] - term["justified"]
+            required = max(required, 0)
+            term["required_attendance_days"] = required
+
+            if required > 0:
+                term["attendance_rate"] = round((term["attendance"] / required) * 100, 1)
+            else:
+                term["attendance_rate"] = 0
+
+        term_stats = {}
+
+        for class_id, info in class_map.items():
+            g = info["grade"]
+            c = info["class_name"]
+
+            attendance_path = f"attendance/{course}-{g}-{c}-{nendo_num}.json"
+            if not os.path.exists(attendance_path):
+                continue
+
+            with open(attendance_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            class_result = {}
+
+            for s in students:
+                if s.get("course") == course and str(s.get("grade")) == g:
+                    sid = s["id"]
+                    class_result[sid] = {
+                        "first_term": init_term(),
+                        "second_term": init_term(),
+                        "total": init_term()
+                    }
+
+            for date_str, entry in data.items():
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+                month = dt.month
+
+                period = "first_term" if month in [4, 5, 6, 7, 8, 9] else "second_term"
+
+                for sid, status in entry.get("students", {}).items():
+                    if sid not in class_result:
+                        continue
+
+                    class_result[sid][period]["school_days"] += 1
+                    add_status(class_result[sid][period], status)
+
+                    class_result[sid]["total"]["school_days"] += 1
+                    add_status(class_result[sid]["total"], status)
+
+            for sid in class_result:
+                finalize_term(class_result[sid]["first_term"])
+                finalize_term(class_result[sid]["second_term"])
+                finalize_term(class_result[sid]["total"])
+
+            term_stats[class_id] = class_result
+
+        out_path2 = f"data/attendance_stats/{nendo}_term_attendance_{course}.json"
+        with open(out_path2, "w", encoding="utf-8") as f:
+            json.dump(term_stats, f, ensure_ascii=False, indent=2)
 
     return {
         "promoted": promoted,

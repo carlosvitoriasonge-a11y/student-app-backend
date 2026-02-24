@@ -1,6 +1,35 @@
 from pydantic import BaseModel
 from typing import Optional, Literal
 
+from pydantic import BaseModel, Field
+from typing import List, Dict, Optional
+
+# -----------------------------
+# 1) Item individual de report
+# -----------------------------
+class ReportItem(BaseModel):
+    id: str
+    date: str
+    status: str = "submitted"   # submitted | accepted | rejected | pending
+    comment: Optional[str] = ""
+
+
+# ---------------------------------------
+# 2) Status da matéria dentro de um ano
+# ---------------------------------------
+class ReportSubjectStatus(BaseModel):
+    required: int
+    submitted: int = 0
+    items: List[ReportItem] = Field(default_factory=list)
+
+
+# ---------------------------------------
+# 3) Estrutura por ano letivo
+# ---------------------------------------
+class YearReportStatus(BaseModel):
+    subjects: Dict[str, ReportSubjectStatus] = Field(default_factory=dict)
+
+
 class StudentBase(BaseModel):
     name: str
     kana: str
@@ -32,13 +61,16 @@ class StudentBase(BaseModel):
 
     class_name: Optional[str] = None
     photo: str | None = None
-    transfer_advanced_date: Optional[str] = None  # 編入学
-    transfer_date: Optional[str] = None           # 転入学
-    previous_school: Optional[str] = None         # 前在籍校
-    course_type: Optional[str] = None             # 課程
-    previous_school_address: Optional[str] = None # 前在籍校住所
+    transfer_advanced_date: Optional[str] = None
+    transfer_date: Optional[str] = None
+    previous_school: Optional[str] = None
+    course_type: Optional[str] = None
+    previous_school_address: Optional[str] = None
     status: Optional[str] = None
     suspension_history: Optional[list] = None
+
+    # ⭐ NOVO CAMPO — reports organizados por ano → matéria
+    reports: Dict[str, YearReportStatus] = Field(default_factory=dict)
 
 
 

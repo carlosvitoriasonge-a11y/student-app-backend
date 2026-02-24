@@ -18,6 +18,13 @@ import psutil
 from auth_jwt import verify_token, create_access_token, create_refresh_token
 import jwt
 from auth_jwt import SECRET_KEY, ALGORITHM
+from fastapi.security import OAuth2PasswordBearer
+from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel, SecurityScheme
+from fastapi.openapi.utils import get_openapi
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+
 
 # -------------------------------
 # students.json のパスを main.py と同じ場所に固定
@@ -62,6 +69,14 @@ from routers.load_classes import router as load_classes_router
 from routers.students_by_class import router as students_by_class_router
 from routers.graduates_in_sep import router as graduates_in_sep_router
 from routers.attendance_sub import router as attendance_sub_router
+from routers.reports import router as reports_router
+from routers.reports_class import router as reports_class_router
+from routers.reports_tasks import router as reports_tasks_router
+from routers.exams import router as exams_router
+from routers.evaluation import router as evaluation_router
+from routers.attendance_stats_special import router as attendance_stats_special_router
+from routers.evaluation_save_all import router as evaluation_save_all_router
+
 
 
 
@@ -233,6 +248,15 @@ app.include_router(attendance_stats_router,prefix="/api/attendance_stats",tags=[
 app.include_router(load_classes_router, prefix="/api", tags=["Classes"], dependencies=[Depends(verify_token)])
 app.include_router(graduates_in_sep_router,prefix="/api",tags=["GraduatesInSep"],dependencies=[Depends(verify_token)])
 app.include_router(attendance_sub_router, prefix="/api/attendance_sub", tags=["AttendanceSub"],dependencies=[Depends(verify_token)])
+app.include_router(reports_router, prefix="/api/reports", tags=["reports"], dependencies=[Depends(verify_token)])
+app.include_router( reports_class_router, prefix="/api", tags=["ReportsClass"], dependencies=[Depends(verify_token)] )
+app.include_router(reports_tasks_router,prefix="/api/tasks",tags=["Tasks"],dependencies=[Depends(verify_token)])
+app.include_router(exams_router, prefix="/api/exams", tags=["exams"],dependencies=[Depends(verify_token)])
+app.include_router(evaluation_router, prefix="/api/evaluation", tags=["evaluation"], dependencies=[Depends(verify_token)])
+app.include_router(attendance_stats_special_router, prefix="/api/attendance_stats_special", tags=["attendance_stats_special"], dependencies=[Depends(verify_token)])
+app.include_router(evaluation_save_all_router, prefix="/api/evaluation_save_all",tags=["evaluation_save_all"], dependencies=[Depends(verify_token)])
+
+
 
 
 
@@ -250,6 +274,37 @@ def system_status():
         "mem_used": mem.used,
         "mem_free": mem.available,
     }
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="School System API",
+        version="1.0.0",
+        description="API documentation with JWT authentication",
+        routes=app.routes,
+    )
+
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+    }
+
+    # Aplica BearerAuth como padrão para todas as rotas /api/*
+    for path in openapi_schema["paths"]:
+        if path.startswith("/api/"):
+            for method in openapi_schema["paths"][path]:
+                openapi_schema["paths"][path][method]["security"] = [{"BearerAuth": []}]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 # -------------------------------
 # 動作確認用
