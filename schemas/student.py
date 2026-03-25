@@ -204,3 +204,7 @@ class StudentOut(StudentBase):
     previous_school_address: Optional[str] = None
     status: Optional[str] = None
     suspension_history: Optional[list] = None
+    shidou_history: list[dict] | None = None
+    moushiokuri_history: list[dict] | None = None
+
+

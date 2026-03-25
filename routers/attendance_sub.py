@@ -115,8 +115,10 @@ def save_attendance_sub(payload: dict):
     # salva o período
     data[date][period] = {
         "subject": subject,
+        "subject_id": payload["subject_id"],
         "students": students
     }
+
 
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)

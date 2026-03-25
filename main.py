@@ -76,6 +76,12 @@ from routers.exams import router as exams_router
 from routers.evaluation import router as evaluation_router
 from routers.attendance_stats_special import router as attendance_stats_special_router
 from routers.evaluation_save_all import router as evaluation_save_all_router
+from routers.attendance_hr_boletin import router as attendance_hr_boletin_router
+from routers.attendance_sub_special import router as attendance_sub_special_router
+from routers.hoshuu import router as hoshuu_router
+from routers.sairishuu import router as sairishuu_router
+
+
 
 
 
@@ -255,6 +261,10 @@ app.include_router(exams_router, prefix="/api/exams", tags=["exams"],dependencie
 app.include_router(evaluation_router, prefix="/api/evaluation", tags=["evaluation"], dependencies=[Depends(verify_token)])
 app.include_router(attendance_stats_special_router, prefix="/api/attendance_stats_special", tags=["attendance_stats_special"], dependencies=[Depends(verify_token)])
 app.include_router(evaluation_save_all_router, prefix="/api/evaluation_save_all",tags=["evaluation_save_all"], dependencies=[Depends(verify_token)])
+app.include_router(attendance_hr_boletin_router, prefix="/api/attendance_hr_boletin", tags=["attendance_hr_boletin"], dependencies=[Depends(verify_token)])
+app.include_router(attendance_sub_special_router,prefix="/api/attendance_sub_special",tags=["attendance_sub_special"],dependencies=[Depends(verify_token)])
+app.include_router(hoshuu_router, prefix="/api/hoshuu", tags=["hoshuu"],dependencies=[Depends(verify_token)])
+app.include_router(sairishuu_router,prefix="/api/sairishuu",tags=["sairishuu"],dependencies=[Depends(verify_token)])
 
 
 

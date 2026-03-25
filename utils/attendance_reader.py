@@ -22,13 +22,14 @@ def extract_attendance_numbers(attendance_json: dict, student_id: str):
     for date, periods in attendance_json.items():
         for period, info in periods.items():
 
-            total += 1  # cada período = 1 aula
-
             status = info["students"].get(student_id)
 
-            # 未記録 → ignorar completamente
+            # 未記録 ou aluno não listado → conta como aula, mas não presença
+            total += 1
+
             if not status or status == "未記録":
                 continue
+
 
             # presença
             if status in PRESENT_STATUSES:

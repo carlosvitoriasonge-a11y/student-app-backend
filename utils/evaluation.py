@@ -109,16 +109,16 @@ def compute_autonomy(present: int, total: int, negative_events: int):
     if total == 0:
         return 0
 
-    # 1) Attendance (25%)
-    attendance_percent = (present / total) * 25
+    # 1) Attendance (20%)
+    attendance_percent = (present / total) * 20
 
-    # 2) Behavior (15%)
+    # 2) Behavior (20%)
     if present == 0:
         # aluno faltou → comportamento = 0
         behavior_percent = 0
     else:
-        behavior_score = max(total - negative_events, 0)
-        behavior_percent = (behavior_score / total) * 15
+        behavior_score = max(total - (2 * negative_events), 0)
+        behavior_percent = (behavior_score / total) * 20
 
     # 3) Total autonomy (0~40)
     return attendance_percent + behavior_percent

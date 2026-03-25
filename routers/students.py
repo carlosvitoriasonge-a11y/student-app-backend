@@ -642,6 +642,7 @@ def reset_seating():
 
 
 
+
 # -----------------------------
 # FILE PATHS
 # -----------------------------
@@ -733,6 +734,112 @@ def server_time():
     return { 
         "iso": now.isoformat() 
     }
+
+
+@router.post("/{student_id}/return")
+def return_from_suspension(student_id: str, date: str = Query(...)):
+    student_id = student_id.lower()
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id:
+
+            if s.get("status") != "休学":
+                return {"status": "not_suspended"}
+
+            # fechar período de suspensão
+            if "suspension_history" in s and s["suspension_history"]:
+                last = s["suspension_history"][-1]
+                if last.get("end") is None:
+                    last["end"] = date
+
+            # restaurar dados salvos no suspend
+            prefix_map = { "1": "1st_year", "2": "2nd_year", "3": "3rd_year" }
+            prefix = prefix_map[str(s["grade"])]
+
+            restored_class = s.get(f"{prefix}_class", "")
+            restored_no = s.get(f"{prefix}_attendance_no", "")
+            restored_teacher = s.get(f"{prefix}_teacher", "")
+
+            s["class_name"] = restored_class
+            s["attend_no"] = restored_no
+            s["teacher"] = restored_teacher
+
+            # mudar status
+            s["status"] = "在籍"
+
+            save_data(data)
+            return {"status": "復学しました"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
+
+
+# ---------------------------------------------------------
+# 指導履歴追加
+# ---------------------------------------------------------
+@router.post("/add_shidou")
+def add_shidou(payload: dict):
+    student_id = payload.get("student_id")
+    text = payload.get("text")
+
+    if not student_id or not text:
+        raise HTTPException(status_code=400, detail="Missing fields")
+
+    data = load_data()
+
+    # procurar aluno
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+
+            entry = {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "teacher": payload.get("teacher", "不明"),
+                "text": text
+            }
+
+            if "shidou_history" not in s:
+                s["shidou_history"] = []
+
+            s["shidou_history"].append(entry)
+
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
+
+
+@router.post("/add_moushiokuri")
+def add_moushiokuri(payload: dict):
+    student_id = payload.get("student_id")
+    text = payload.get("text")
+    teacher = payload.get("teacher", "不明")
+
+    if not student_id or not text:
+        raise HTTPException(status_code=400, detail="Missing fields")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+
+            entry = {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "teacher": teacher,
+                "text": text
+            }
+
+            if "moushiokuri_history" not in s:
+                s["moushiokuri_history"] = []
+
+            s["moushiokuri_history"].append(entry)
+
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
+
+
+
 
 
 
