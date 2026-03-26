@@ -88,7 +88,6 @@ from routers.sairishuu import router as sairishuu_router
 
 
 
-
 app = FastAPI(
     title="Student Management API",
     redirect_slashes=True
@@ -265,7 +264,6 @@ app.include_router(attendance_hr_boletin_router, prefix="/api/attendance_hr_bole
 app.include_router(attendance_sub_special_router,prefix="/api/attendance_sub_special",tags=["attendance_sub_special"],dependencies=[Depends(verify_token)])
 app.include_router(hoshuu_router, prefix="/api/hoshuu", tags=["hoshuu"],dependencies=[Depends(verify_token)])
 app.include_router(sairishuu_router,prefix="/api/sairishuu",tags=["sairishuu"],dependencies=[Depends(verify_token)])
-
 
 
 
