@@ -206,5 +206,8 @@ class StudentOut(StudentBase):
     suspension_history: Optional[list] = None
     shidou_history: list[dict] | None = None
     moushiokuri_history: list[dict] | None = None
+    zemi_history: list[dict] | None = None
+    bukatsu_history: list[dict] | None = None
+    yakuin_history: list[dict] | None = None
 
 

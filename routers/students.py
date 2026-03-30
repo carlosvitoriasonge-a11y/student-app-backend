@@ -860,9 +860,110 @@ def list_all_students():
     return data
 
 
+# ---------------------------------------------------------
+# ゼミ活動追加
+# ---------------------------------------------------------
+@router.post("/add_zemi")
+def add_zemi(payload: dict):
+    student_id = payload.get("student_id")
+    text = payload.get("text")
+    teacher = payload.get("teacher", "不明")
+
+    if not student_id or not text:
+        raise HTTPException(status_code=400, detail="Missing fields")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+
+            entry = {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "grade": s.get("grade"),  
+                "teacher": teacher,
+                "text": text
+            }
+
+            if "zemi_history" not in s:
+                s["zemi_history"] = []
+
+            s["zemi_history"].append(entry)
+
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
 
 
 
+# ---------------------------------------------------------
+# 部活動・サークル活動追加
+# ---------------------------------------------------------
+@router.post("/add_bukatsu")
+def add_bukatsu(payload: dict):
+    student_id = payload.get("student_id")
+    text = payload.get("text")
+    teacher = payload.get("teacher", "不明")
+
+    if not student_id or not text:
+        raise HTTPException(status_code=400, detail="Missing fields")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+
+            entry = {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "grade": s.get("grade"),  
+                "teacher": teacher,
+                "text": text
+            }
+
+            if "bukatsu_history" not in s:
+                s["bukatsu_history"] = []
+
+            s["bukatsu_history"].append(entry)
+
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
+
+
+# ---------------------------------------------------------
+# 役員情報追加
+# ---------------------------------------------------------
+@router.post("/add_yakuin")
+def add_yakuin(payload: dict):
+    student_id = payload.get("student_id")
+    text = payload.get("text")
+    teacher = payload.get("teacher", "不明")
+
+    if not student_id or not text:
+        raise HTTPException(status_code=400, detail="Missing fields")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+
+            entry = {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "grade": s.get("grade"),  
+                "teacher": teacher,
+                "text": text
+            }
+
+            if "yakuin_history" not in s:
+                s["yakuin_history"] = []
+
+            s["yakuin_history"].append(entry)
+
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Student not found")
 
 
 
