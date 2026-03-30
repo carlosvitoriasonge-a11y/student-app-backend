@@ -130,3 +130,83 @@ def get_special_attendance_stats(course: str, grade: str, class_name: str, sy: i
             g["attendance_rate"] = round((g["attendance"] / required) * 100, 1) if required > 0 else 0
 
     return stats
+
+@router.get("/special/all")
+def get_special_attendance_stats_all():
+    """
+    Versão global:
+    - Varre todos os arquivos em attendance/
+    - Aplica as mesmas regras de get_special_attendance_stats
+    - Retorna stats para TODOS os alunos
+    """
+
+    stats = {}
+
+    # percorre todos os arquivos em attendance/
+    base_dir = "attendance"
+    if not os.path.exists(base_dir):
+        return {}
+
+    for filename in os.listdir(base_dir):
+        if not filename.endswith(".json"):
+            continue
+
+        # esperado: {course}-{grade}-{class_name}-{sy}.json
+        base, _ = os.path.splitext(filename)
+        parts = base.split("-")
+        if len(parts) < 4:
+            continue
+
+        course, grade, class_name, sy_str = parts[0], parts[1], parts[2], parts[3]
+
+        try:
+            sy = int(sy_str)
+        except ValueError:
+            continue
+
+        # aplica regra de alvo especial
+        if not is_special_target(sy, grade):
+            continue
+
+        path = os.path.join(base_dir, filename)
+        if not os.path.exists(path):
+            continue
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # --- mesmo processamento do /special ---
+        for date_str, entry in data.items():
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            month = dt.month
+
+            group = map_month_to_group(grade, month)
+            if not group:
+                continue
+
+            for sid, status in entry.get("students", {}).items():
+
+                if sid not in stats:
+                    stats[sid] = {
+                        "senmon_zenki": init_group(),
+                        "koukou_zenki": init_group(),
+                        "senmon_koki": init_group(),
+                        "koukou_koki": init_group()
+                    }
+
+                stats[sid][group]["school_days"] += 1
+
+                if status in ATTENDANCE_MAP:
+                    for k, v in ATTENDANCE_MAP[status].items():
+                        stats[sid][group][k] += v
+
+    # pós-processamento (required_attendance_days + attendance_rate)
+    for sid, groups in stats.items():
+        for g in groups.values():
+            required = g["school_days"] - g["mourn"] - g["stopped"] - g["justified"]
+            required = max(required, 0)
+            g["required_attendance_days"] = required
+            g["attendance_rate"] = round((g["attendance"] / required) * 100, 1) if required > 0 else 0
+
+    return stats
+

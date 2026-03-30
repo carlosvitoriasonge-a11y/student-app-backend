@@ -838,6 +838,29 @@ def add_moushiokuri(payload: dict):
 
     raise HTTPException(status_code=404, detail="Student not found")
 
+@router.get("/all")
+def list_all_students():
+    """
+    Retorna TODOS os alunos:
+    - 在籍
+    - 休学
+    - 停学
+    - 転出
+    - 卒業
+    - 退学
+    - 復学
+    """
+    data = load_data()
+
+    # garantir que attend_no seja string quando existir
+    for s in data:
+        if s.get("attend_no") is not None:
+            s["attend_no"] = str(s["attend_no"])
+
+    return data
+
+
+
 
 
 

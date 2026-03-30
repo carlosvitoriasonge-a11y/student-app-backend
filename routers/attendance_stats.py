@@ -65,3 +65,42 @@ def get_attendance_stats(
     }
 
 
+@router.get("/stats/all")
+def get_attendance_stats_all():
+
+    all_students = {}
+
+    # pasta attendance/
+    base_dir = ATTENDANCE_DIR
+    if not base_dir.exists():
+        return {"student_stats": {}}
+
+    # percorre todos os arquivos: 全-1-1組-2025.json etc.
+    for file in base_dir.glob("*.json"):
+
+        # extrai course, grade, class_name, school_year
+        name = file.stem  # ex: 全-1-1組-2025
+        parts = name.split("-")
+        if len(parts) < 4:
+            continue
+
+        course, grade, class_name, sy_str = parts
+        try:
+            school_year = int(sy_str)
+        except:
+            continue
+
+        # carrega o arquivo
+        with file.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # calcula stats usando o MESMO cálculo do 出席簿
+        stats = compute_attendance_stats(data)
+
+        # junta todos os student_stats
+        for sid, st in stats["students"].items():
+            all_students[sid] = st
+
+    return {
+        "student_stats": all_students
+    }
