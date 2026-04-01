@@ -214,7 +214,7 @@ def promote_students(payload: dict):
         s_grade = str(s["grade"])
         sid = str(s["id"]).strip()
 
-        if s_grade != grade:
+        if s_grade != grade or s.get("course") != payload.get("course"):
             new_students.append(s)
             continue
 

@@ -879,7 +879,7 @@ def add_zemi(payload: dict):
 
             entry = {
                 "date": datetime.now().strftime("%Y-%m-%d"),
-                "grade": s.get("grade"),  
+                "grade": payload.get("grade"),  
                 "teacher": teacher,
                 "text": text
             }
@@ -915,7 +915,7 @@ def add_bukatsu(payload: dict):
 
             entry = {
                 "date": datetime.now().strftime("%Y-%m-%d"),
-                "grade": s.get("grade"),  
+                "grade": payload.get("grade"),  
                 "teacher": teacher,
                 "text": text
             }
@@ -950,7 +950,7 @@ def add_yakuin(payload: dict):
 
             entry = {
                 "date": datetime.now().strftime("%Y-%m-%d"),
-                "grade": s.get("grade"),  
+                "grade": payload.get("grade"),   
                 "teacher": teacher,
                 "text": text
             }
