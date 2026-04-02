@@ -597,7 +597,21 @@ def sanitize_layout(layout, valid_student_ids):
     max_auto_col = max((s.get("col", 0) for s in auto), default=0)
     max_auto_row = max((s.get("row", 0) for s in auto), default=0)
 
-    # filtra APENAS seats impossíveis (não altera nada válido)
+    # ⚠️ SE O AUTO NÃO É CONFIÁVEL → NÃO FILTRA NADA
+    if max_auto_col == 0 or max_auto_row == 0:
+        return layout
+
+    # ⚠️ SE O CUSTOM TEM MAIS COLUNAS QUE O AUTO → NÃO FILTRA
+    max_custom_col = max((s.get("col", 0) for s in custom), default=0)
+    if max_custom_col > max_auto_col:
+        return layout
+
+    # ⚠️ SE O CUSTOM TEM MAIS LINHAS QUE O AUTO → NÃO FILTRA
+    max_custom_row = max((s.get("row", 0) for s in custom), default=0)
+    if max_custom_row > max_auto_row:
+        return layout
+
+    # 🔥 Só filtra seats realmente inválidos
     custom = [
         seat for seat in custom
         if 1 <= seat.get("col", 0) <= max_auto_col
@@ -617,6 +631,7 @@ def sanitize_layout(layout, valid_student_ids):
 
     layout["custom"] = custom
     return layout
+
 
 
 
