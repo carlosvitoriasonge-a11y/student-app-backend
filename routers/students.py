@@ -593,13 +593,8 @@ def sanitize_layout(layout, valid_student_ids):
     auto = layout.get("auto", [])
     custom = layout.get("custom", [])
 
-    # range real do grid baseado no AUTO
     max_auto_col = max((s.get("col", 0) for s in auto), default=0)
     max_auto_row = max((s.get("row", 0) for s in auto), default=0)
-
-    # ⚠️ SE O AUTO NÃO É CONFIÁVEL → NÃO FILTRA NADA
-    if max_auto_col == 0 or max_auto_row == 0:
-        return layout
 
     # ⚠️ SE O CUSTOM TEM MAIS COLUNAS QUE O AUTO → NÃO FILTRA
     max_custom_col = max((s.get("col", 0) for s in custom), default=0)
@@ -618,12 +613,10 @@ def sanitize_layout(layout, valid_student_ids):
         and 1 <= seat.get("row", 0) <= max_auto_row
     ]
 
-    # active null → false
     for seat in custom:
         if seat.get("active") is None:
             seat["active"] = False
 
-    # student_id inválido → null
     for seat in custom:
         sid = seat.get("student_id")
         if sid not in valid_student_ids:
@@ -631,6 +624,7 @@ def sanitize_layout(layout, valid_student_ids):
 
     layout["custom"] = custom
     return layout
+
 
 
 
