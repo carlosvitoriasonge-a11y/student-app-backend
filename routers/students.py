@@ -589,6 +589,36 @@ def save_seating_json(data):
 def reset_seating_json():
     save_seating_json([])
 
+def sanitize_layout(layout, valid_student_ids):
+    auto = layout.get("auto", [])
+    custom = layout.get("custom", [])
+
+    # range real do grid baseado no AUTO
+    max_auto_col = max((s.get("col", 0) for s in auto), default=0)
+    max_auto_row = max((s.get("row", 0) for s in auto), default=0)
+
+    # filtra APENAS seats impossíveis (não altera nada válido)
+    custom = [
+        seat for seat in custom
+        if 1 <= seat.get("col", 0) <= max_auto_col
+        and 1 <= seat.get("row", 0) <= max_auto_row
+    ]
+
+    # active null → false
+    for seat in custom:
+        if seat.get("active") is None:
+            seat["active"] = False
+
+    # student_id inválido → null
+    for seat in custom:
+        sid = seat.get("student_id")
+        if sid not in valid_student_ids:
+            seat["student_id"] = None
+
+    layout["custom"] = custom
+    return layout
+
+
 
 # -----------------------------
 # GET: carregar estado
@@ -602,8 +632,19 @@ def get_seating(course: str, grade: str, class_name: str):
         return { 
             "auto": [], 
             "custom": [] 
-        } 
-    return data[key]
+        }
+
+    layout = data[key]
+
+    # carregar ids válidos
+    from utils.data import load_data
+    valid_ids = {s["id"] for s in load_data()}
+
+    # 🔥 filtra seats inválidos para não travar a Svelte
+    layout = sanitize_layout(layout, valid_ids)
+
+    return layout
+
 
 
 # -----------------------------
