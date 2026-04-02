@@ -636,14 +636,15 @@ def get_seating(course: str, grade: str, class_name: str):
 
     layout = data[key]
 
-    # carregar ids válidos
+    # carregar ids válidos (sem quebrar)
     from utils.data import load_data
-    valid_ids = {s["id"] for s in load_data()}
+    valid_ids = {s.get("id") for s in load_data() if s.get("id")}
 
-    # 🔥 filtra seats inválidos para não travar a Svelte
+    # filtra seats inválidos para não travar a Svelte
     layout = sanitize_layout(layout, valid_ids)
 
     return layout
+
 
 
 
