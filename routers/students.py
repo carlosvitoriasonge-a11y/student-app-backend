@@ -164,15 +164,21 @@ def filter_students(
     for s in data:
         if s.get("grade") != grade:
             continue
+
         if course_jp and normalize_course(s.get("course")) != normalize_course(course_jp):
             continue
+
         if gender_jp and s.get("gender") != gender_jp:
             continue
-        if class_name and s.get("class_name") != class_name:
+
+        # ⭐⭐⭐ AQUI ESTÁ A CORREÇÃO ⭐⭐⭐
+        if class_name and class_name != "ALL" and s.get("class_name") != class_name:
             continue
+
         results.append(s)
 
     return results
+
 
 # ---------------------------------------------------------
 # 在校生検索
@@ -629,27 +635,77 @@ def sanitize_layout(layout, valid_student_ids):
 
 
 
-# -----------------------------
-# GET: carregar estado
-# -----------------------------
-@router.get("/seating") 
-def get_seating(course: str, grade: str, class_name: str): 
-    key = f"{course}-{grade}-{class_name}" 
-    data = load_seating() 
-    
-    if key not in data: 
-        return { 
-            "auto": [], 
-            "custom": [] 
-        }
+@router.get("/seating")
+def get_seating(
+    course: str,
+    grade: str,
+    class_name: str | None = None,
+    type: str | None = None
+):
+    data = load_seating()
+
+    # ==========================
+    # 学年集会 (gakunen)
+    # ==========================
+    if type == "gakunen":
+        key = f"{course}-{grade}-gakunen"
+
+        if key not in data:
+            return {"seats": []}
+
+        layout = data[key]
+
+        from utils.data import load_data
+        valid_ids = {s.get("id") for s in load_data() if s.get("id")}
+        layout = sanitize_layout(layout, valid_ids)
+
+        return layout
+
+    # ==========================
+    # class_name obrigatório para turmas normais
+    # ==========================
+    if class_name is None:
+        raise HTTPException(422, "class_name required unless type=gakunen")
+
+    # ==========================
+    # class_name = ALL → retornar TODAS as turmas reais
+    # ==========================
+    if class_name == "ALL":
+        from utils.data import load_data
+        all_students = load_data()
+
+        # pegar todas as classes reais do course/grade
+        class_names = sorted({
+            s.get("class_name")
+            for s in all_students
+            if s.get("course") == course and str(s.get("grade")) == str(grade)
+        })
+
+        result = {}
+
+        for cn in class_names:
+            key = f"{course}-{grade}-{cn}"
+            layout = data.get(key, {"auto": [], "custom": []})
+
+            valid_ids = {s.get("id") for s in all_students if s.get("id")}
+            layout = sanitize_layout(layout, valid_ids)
+
+            result[key] = layout
+
+        return result
+
+    # ==========================
+    # Turma normal (1組, 2組, etc)
+    # ==========================
+    key = f"{course}-{grade}-{class_name}"
+
+    if key not in data:
+        return {"auto": [], "custom": []}
 
     layout = data[key]
 
-    # carregar ids válidos (sem quebrar)
     from utils.data import load_data
     valid_ids = {s.get("id") for s in load_data() if s.get("id")}
-
-    # filtra seats inválidos para não travar a Svelte
     layout = sanitize_layout(layout, valid_ids)
 
     return layout
@@ -660,37 +716,40 @@ def get_seating(course: str, grade: str, class_name: str):
 # -----------------------------
 # POST: salvar estado
 # -----------------------------
-@router.post("/seating/save") 
-def save_seating(payload: dict): 
-    course = payload["course"] 
-    grade = payload["grade"] 
-    class_name = payload["class_name"] 
-    type_ = payload["type"] # "auto" ou "custom" 
-    seats = payload["seats"] 
-    
-    key = f"{course}-{grade}-{class_name}" 
-    
-    data = load_seating() 
-    
-    if key not in data: 
-        data[key] = {"auto": [], "custom": []} 
-        
-    data[key][type_] = seats 
-    
-    save_seating_json(data) 
-    
+@router.post("/seating/save")
+def save_seating(payload: dict):
+
+    course = payload["course"]
+    grade = payload["grade"]
+    class_name = payload.get("class_name")
+    type_ = payload["type"]
+    seats = payload["seats"]
+
+    data = load_seating()
+
+    # 学年集会
+    if type_ == "gakunen":
+        key = f"{course}-{grade}-gakunen"
+
+        # sempre salvar no formato correto
+        data[key] = {
+            "seats": seats
+        }
+
+        save_seating_json(data)
+        return {"status": "ok"}
+
+
+    # Turma normal
+    key = f"{course}-{grade}-{class_name}"
+
+    if key not in data:
+        data[key] = {"auto": [], "custom": []}
+
+    data[key][type_] = seats
+
+    save_seating_json(data)
     return {"status": "ok"}
-
-
-# (opcional) RESET manual para クラス分け
-@router.post("/seating/reset")
-def reset_seating():
-    reset_seating_json()
-    return {"status": "reset"}
-
-
-
-
 
 
 
