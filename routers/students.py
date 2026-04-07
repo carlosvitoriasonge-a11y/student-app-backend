@@ -36,6 +36,20 @@ def normalize_course(course):
 
 # =========================================================
 
+def hira_to_kata(text: str) -> str:
+    if not text:
+        return ""
+    result = []
+    for ch in text:
+        code = ord(ch)
+        # Hiragana range
+        if 0x3041 <= code <= 0x3096:
+            result.append(chr(code + 0x60))  # shift to Katakana block
+        else:
+            result.append(ch)
+    return "".join(result)
+
+
 router = APIRouter()
 
 def find_photo(student_id: str):
@@ -86,6 +100,8 @@ def download_all_classes(grade: str, course: str | None = None):
             sheet.append([
                 s.get("attend_no") or "",
                 s.get("name") or "",
+                s.get("kana") or "",   
+                hira_to_kata(s.get("kana") or ""),   # katakana convertido
                 s.get("gender") or "",
                 COURSE_LABEL_MAP.get(normalize_course(s.get("course")), s.get("course") or ""),
             ])
