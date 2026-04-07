@@ -89,7 +89,7 @@ def download_all_classes(grade: str, course: str | None = None):
 
     for cname in class_names:
         sheet = wb.create_sheet(title=f"{grade}年_{course or '全コース'}_{cname}")
-        sheet.append(["出席番号", "名前", "性別", "コース"])
+        sheet.append(["出席番号", "名前", "ふりがな","フリガナ","性別", "コース"])
 
         class_students = sorted(
             [s for s in students if s.get("class_name") == cname],
@@ -1090,6 +1090,230 @@ def add_yakuin(payload: dict):
             return {"status": "ok"}
 
     raise HTTPException(status_code=404, detail="Student not found")
+
+# ---------------------------------------------------------
+# 申し送り 編集
+# ---------------------------------------------------------
+@router.post("/edit_moushiokuri")
+def edit_moushiokuri(payload: dict):
+    student_id = payload.get("student_id")
+    original_date = payload.get("original_date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            for entry in s.get("moushiokuri_history", []):
+                if entry["date"] == original_date:
+                    entry["teacher"] = payload.get("teacher", entry["teacher"])
+                    entry["text"] = payload.get("text", entry["text"])
+                    save_data(data)
+                    return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# 申し送り 削除
+# ---------------------------------------------------------
+@router.post("/delete_moushiokuri")
+def delete_moushiokuri(payload: dict):
+    student_id = payload.get("student_id")
+    date = payload.get("date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            s["moushiokuri_history"] = [
+                e for e in s.get("moushiokuri_history", [])
+                if e["date"] != date
+            ]
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# 指導履歴 編集
+# ---------------------------------------------------------
+@router.post("/edit_shidou")
+def edit_shidou(payload: dict):
+    student_id = payload.get("student_id")
+    original_date = payload.get("original_date")
+    new_text = payload.get("text")
+    new_teacher = payload.get("teacher")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            for entry in s.get("shidou_history", []):
+                if entry["date"] == original_date:
+                    entry["text"] = new_text
+                    entry["teacher"] = new_teacher
+                    save_data(data)
+                    return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# 指導履歴 削除
+# ---------------------------------------------------------
+@router.post("/delete_shidou")
+def delete_shidou(payload: dict):
+    student_id = payload.get("student_id")
+    date = payload.get("date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            s["shidou_history"] = [
+                e for e in s.get("shidou_history", [])
+                if e["date"] != date
+            ]
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# ゼミ 編集
+# ---------------------------------------------------------
+@router.post("/edit_zemi")
+def edit_zemi(payload: dict):
+    student_id = payload.get("student_id")
+    original_date = payload.get("original_date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            for entry in s.get("zemi_history", []):
+                if entry.get("date") == original_date:
+                    entry["grade"] = payload.get("grade", entry["grade"])
+                    entry["teacher"] = payload.get("teacher", entry["teacher"])
+                    entry["text"] = payload.get("text", entry["text"])
+                    save_data(data)
+                    return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# ゼミ 削除
+# ---------------------------------------------------------
+@router.post("/delete_zemi")
+def delete_zemi(payload: dict):
+    student_id = payload.get("student_id")
+    date = payload.get("date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            s["zemi_history"] = [
+                e for e in s.get("zemi_history", [])
+                if e["date"] != date
+            ]
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# 部活 編集
+# ---------------------------------------------------------
+@router.post("/edit_bukatsu")
+def edit_bukatsu(payload: dict):
+    student_id = payload.get("student_id")
+    original_date = payload.get("original_date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            for entry in s.get("bukatsu_history", []):
+                if entry["date"] == original_date:
+                    entry["grade"] = payload.get("grade", entry["grade"])
+                    entry["teacher"] = payload.get("teacher", entry["teacher"])
+                    entry["text"] = payload.get("text", entry["text"])
+                    save_data(data)
+                    return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# 部活 削除
+# ---------------------------------------------------------
+@router.post("/delete_bukatsu")
+def delete_bukatsu(payload: dict):
+    student_id = payload.get("student_id")
+    date = payload.get("date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            s["bukatsu_history"] = [
+                e for e in s.get("bukatsu_history", [])
+                if e["date"] != date
+            ]
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# 役員 編集
+# ---------------------------------------------------------
+@router.post("/edit_yakuin")
+def edit_yakuin(payload: dict):
+    student_id = payload.get("student_id")
+    original_date = payload.get("original_date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            for entry in s.get("yakuin_history", []):
+                if entry["date"] == original_date:
+                    entry["grade"] = payload.get("grade", entry["grade"])
+                    entry["teacher"] = payload.get("teacher", entry["teacher"])
+                    entry["text"] = payload.get("text", entry["text"])
+                    save_data(data)
+                    return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+# ---------------------------------------------------------
+# 役員 削除
+# ---------------------------------------------------------
+@router.post("/delete_yakuin")
+def delete_yakuin(payload: dict):
+    student_id = payload.get("student_id")
+    date = payload.get("date")
+
+    data = load_data()
+
+    for s in data:
+        if s["id"].lower() == student_id.lower():
+            s["yakuin_history"] = [
+                e for e in s.get("yakuin_history", [])
+                if e["date"] != date
+            ]
+            save_data(data)
+            return {"status": "ok"}
+
+    raise HTTPException(status_code=404, detail="Record not found")
 
 
 
