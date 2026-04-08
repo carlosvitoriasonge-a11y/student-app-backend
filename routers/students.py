@@ -89,7 +89,7 @@ def download_all_classes(grade: str, course: str | None = None):
 
     for cname in class_names:
         sheet = wb.create_sheet(title=f"{grade}年_{course or '全コース'}_{cname}")
-        sheet.append(["出席番号", "名前", "ふりがな","フリガナ","性別", "コース"])
+        sheet.append(["出席番号", "名前", "ふりがな","フリガナ","ID","性別", "コース"])
 
         class_students = sorted(
             [s for s in students if s.get("class_name") == cname],
@@ -102,6 +102,7 @@ def download_all_classes(grade: str, course: str | None = None):
                 s.get("name") or "",
                 s.get("kana") or "",   
                 hira_to_kata(s.get("kana") or ""),   # katakana convertido
+                (s.get("student_id") or ""), 
                 s.get("gender") or "",
                 COURSE_LABEL_MAP.get(normalize_course(s.get("course")), s.get("course") or ""),
             ])
