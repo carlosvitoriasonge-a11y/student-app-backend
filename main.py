@@ -80,7 +80,7 @@ from routers.attendance_hr_boletin import router as attendance_hr_boletin_router
 from routers.attendance_sub_special import router as attendance_sub_special_router
 from routers.hoshuu import router as hoshuu_router
 from routers.sairishuu import router as sairishuu_router
-
+from routers.server import router as server_router
 
 
 
@@ -264,6 +264,8 @@ app.include_router(attendance_hr_boletin_router, prefix="/api/attendance_hr_bole
 app.include_router(attendance_sub_special_router,prefix="/api/attendance_sub_special",tags=["attendance_sub_special"],dependencies=[Depends(verify_token)])
 app.include_router(hoshuu_router, prefix="/api/hoshuu", tags=["hoshuu"],dependencies=[Depends(verify_token)])
 app.include_router(sairishuu_router,prefix="/api/sairishuu",tags=["sairishuu"],dependencies=[Depends(verify_token)])
+app.include_router(server_router,prefix="/api")
+
 
 
 
