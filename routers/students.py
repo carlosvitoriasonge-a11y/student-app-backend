@@ -1296,6 +1296,38 @@ def edit_yakuin(payload: dict):
 
 
 # ---------------------------------------------------------
+# 写真未登録の生徒一覧
+# ---------------------------------------------------------
+@router.get("/no_photo")
+def list_students_without_photo():
+    data = load_data()
+
+    result = {}
+
+    for s in data:
+        sid = s.get("id")
+        grade = s.get("grade")
+        class_name = s.get("class_name")
+
+        if not sid:
+            continue
+
+        # usa sua função find_photo()
+        if not find_photo(sid):
+            class_key = f"{grade}-{class_name}"
+
+            if class_key not in result:
+                result[class_key] = []
+
+            result[class_key].append({
+                "id": sid,
+                "name": s.get("name")
+            })
+
+    return dict(sorted(result.items()))
+
+
+# ---------------------------------------------------------
 # 役員 削除
 # ---------------------------------------------------------
 @router.post("/delete_yakuin")
