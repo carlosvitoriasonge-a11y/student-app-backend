@@ -1308,23 +1308,28 @@ def list_students_without_photo():
         sid = s.get("id")
         grade = s.get("grade")
         class_name = s.get("class_name")
+        course = s.get("course")  # ← ADICIONADO
 
         if not sid:
             continue
 
-        # usa sua função find_photo()
         if not find_photo(sid):
+            course_key = course or "?"
             class_key = f"{grade}-{class_name}"
 
-            if class_key not in result:
-                result[class_key] = []
+            if course_key not in result:
+                result[course_key] = {}
 
-            result[class_key].append({
+            if class_key not in result[course_key]:
+                result[course_key][class_key] = []
+
+            result[course_key][class_key].append({
                 "id": sid,
                 "name": s.get("name")
             })
 
-    return dict(sorted(result.items()))
+    return result
+
 
 
 # ---------------------------------------------------------
