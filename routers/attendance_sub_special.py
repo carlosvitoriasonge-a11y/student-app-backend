@@ -6,10 +6,26 @@ from routers.subjects import get_subjects
 router = APIRouter()
 
 # 🔥 matérias que SEMPRE contam o ano inteiro (ignoram regime especial)
+# 🔥 matérias que SEMPRE contam o ano inteiro (ignoram regime especial)
 ALWAYS_FULL_YEAR_SUBJECT_IDS = {
-    "e9c6f011-bada-4559-bb29-702e731da6b7",  # 総合探究 2年
-    "d7a30f13-d772-42c1-a12a-8f124c1d4b78"   # 総合探究 3年
+    # 総合探究（特別活動）– 2年・3年
+    "e9c6f011-bada-4559-bb29-702e731da6b7",
+    "d7a30f13-d772-42c1-a12a-8f124c1d4b78",
+
+    # 総合探究（総合）– 2年・3年
+    "8e561dc3-61d4-4cab-955f-18419885e74c",
+    "19fff2b8-3460-43df-a05e-553e5a7d81b6",
+
+    # 保健体育（全）
+    "914638ca-8a55-4917-9558-1113767807fb",
+
+    # 家庭基礎（家庭）
+    "d2afde33-9c1b-43e7-a7c8-b66bf4ea702f",
+
+    # この科目 (id: 7729fbab...) — exam_frequency=4
+    "7729fbab-9b9f-44bd-959b-65ef9d38f22a"
 }
+
 
 def init_group():
     return {
