@@ -45,14 +45,20 @@ def map_month_to_group(grade: str, month: int):
     return None
 
 
-def is_special_target(sy: int, grade: str) -> bool:
+def is_special_target(sy: int, grade: str, course: str) -> bool:
+    # só 全日（全） entra na regra especial
+    if course != "全":
+        return False
+
     if sy == 2025 and grade in ["2", "3"]:
         return True
     if sy == 2026 and grade in ["2", "3"]:
         return True
     if sy == 2027 and grade == "3":
         return True
+
     return False
+
 
 
 def attendance_sub_file_path(course, grade, class_name, sy):
@@ -63,7 +69,8 @@ def attendance_sub_file_path(course, grade, class_name, sy):
 @router.get("/special_sub")
 def get_special_subject_attendance(course: str, grade: str, class_name: str, sy: int):
 
-    special = is_special_target(sy, grade)
+    special = is_special_target(sy, grade, course)
+
 
     # carregar attendance_sub (se existir)
     path = attendance_sub_file_path(course, grade, class_name, sy)
