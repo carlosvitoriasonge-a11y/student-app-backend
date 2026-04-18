@@ -5,6 +5,11 @@ from routers.subjects import get_subjects
 
 router = APIRouter()
 
+# 🔥 matérias que SEMPRE contam o ano inteiro (ignoram regime especial)
+ALWAYS_FULL_YEAR_SUBJECT_IDS = {
+    "e9c6f011-bada-4559-bb29-702e731da6b7",  # 総合探究 2年
+    "d7a30f13-d772-42c1-a12a-8f124c1d4b78"   # 総合探究 3年
+}
 
 def init_group():
     return {
@@ -19,7 +24,6 @@ def init_group():
         "justified": 0,
         "attendance_rate": 0
     }
-
 
 def map_month_to_group(grade: str, month: int):
     if grade == "2":
@@ -44,35 +48,26 @@ def map_month_to_group(grade: str, month: int):
 
     return None
 
-
 def is_special_target(sy: int, grade: str, course: str) -> bool:
-    # só 全日（全） entra na regra especial
     if course != "全":
         return False
-
     if sy == 2025 and grade in ["2", "3"]:
         return True
     if sy == 2026 and grade in ["2", "3"]:
         return True
     if sy == 2027 and grade == "3":
         return True
-
     return False
-
-
 
 def attendance_sub_file_path(course, grade, class_name, sy):
     class_id = f"{course}-{grade}-{class_name}"
     return f"attendance_sub/{class_id}-{sy}.json"
-
 
 @router.get("/special_sub")
 def get_special_subject_attendance(course: str, grade: str, class_name: str, sy: int):
 
     special = is_special_target(sy, grade, course)
 
-
-    # carregar attendance_sub (se existir)
     path = attendance_sub_file_path(course, grade, class_name, sy)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
@@ -80,7 +75,6 @@ def get_special_subject_attendance(course: str, grade: str, class_name: str, sy:
     else:
         data = {}
 
-    # carregar matérias
     subjects = get_subjects(course=course, grade=grade)
     subject_required_map = {s["id"]: s["required_attendance"] for s in subjects}
 
@@ -88,22 +82,25 @@ def get_special_subject_attendance(course: str, grade: str, class_name: str, sy:
 
     PRESENT_STATUSES = {"出席", "遅刻", "怠学・居眠り", "忘れ物"}
 
-    # PROCESSAR ATTENDANCE SUB (se existir)
     for date_str, periods in data.items():
         dt = datetime.strptime(date_str, "%Y-%m-%d")
         month = dt.month
 
-        if special:
-            group = map_month_to_group(grade, month)
-        else:
-            group = "zenki" if month in [4, 5, 6, 7, 8, 9] else "koki"
-
-        if not group:
-            continue
-
         for period, entry in periods.items():
             subject_id = entry.get("subject_id")
             if not subject_id:
+                continue
+
+            # 🔥 esta matéria ignora o regime especial?
+            subject_is_full_year = subject_id in ALWAYS_FULL_YEAR_SUBJECT_IDS
+            special_for_subject = special and not subject_is_full_year
+
+            if special_for_subject:
+                group = map_month_to_group(grade, month)
+            else:
+                group = "zenki" if month in [4, 5, 6, 7, 8, 9] else "koki"
+
+            if not group:
                 continue
 
             students_att = entry.get("students", {})
@@ -114,7 +111,7 @@ def get_special_subject_attendance(course: str, grade: str, class_name: str, sy:
                     stats[sid] = {}
 
                 if subject_id not in stats[sid]:
-                    if special:
+                    if special_for_subject:
                         stats[sid][subject_id] = {
                             "senmon_zenki": init_group(),
                             "koukou_zenki": init_group(),
@@ -138,8 +135,12 @@ def get_special_subject_attendance(course: str, grade: str, class_name: str, sy:
 
     for sid in stats.keys():
         for subj_id in subject_required_map.keys():
+
+            subject_is_full_year = subj_id in ALWAYS_FULL_YEAR_SUBJECT_IDS
+            special_for_subject = special and not subject_is_full_year
+
             if subj_id not in stats[sid]:
-                if special:
+                if special_for_subject:
                     stats[sid][subj_id] = {
                         "senmon_zenki": init_group(),
                         "koukou_zenki": init_group(),
@@ -152,13 +153,15 @@ def get_special_subject_attendance(course: str, grade: str, class_name: str, sy:
                         "koki": init_group()
                     }
 
-    # 🔥 CÁLCULO FINAL (sempre funciona, mesmo sem attendance)
     for sid, subjects_data in stats.items():
         for subj_id, groups in subjects_data.items():
 
             required = subject_required_map.get(subj_id, 0)
 
-            if special:
+            subject_is_full_year = subj_id in ALWAYS_FULL_YEAR_SUBJECT_IDS
+            special_for_subject = special and not subject_is_full_year
+
+            if special_for_subject:
                 valid_att = (
                     groups["koukou_zenki"]["attendance"] +
                     groups["koukou_koki"]["attendance"]
