@@ -42,27 +42,24 @@ def init_group():
     }
 
 def map_month_to_group(grade: str, month: int):
+    # 2º ano
     if grade == "2":
-        if month in [4, 5, 7, 8, 9]:
-            return "senmon_zenki"
         if month == 6:
             return "koukou_zenki"
-        if month in [11, 12, 1, 3]:
-            return "senmon_koki"
         if month in [10, 2]:
             return "koukou_koki"
+        return None  # ❗ todos os outros meses são inválidos
 
+    # 3º ano
     if grade == "3":
-        if month in [4, 5, 7, 8, 9]:
-            return "senmon_zenki"
         if month == 6:
             return "koukou_zenki"
-        if month in [11, 12, 2, 3]:
-            return "senmon_koki"
         if month in [10, 1]:
             return "koukou_koki"
+        return None  # ❗ todos os outros meses são inválidos
 
     return None
+
 
 def is_special_target(sy: int, grade: str, course: str) -> bool:
     if course != "全":

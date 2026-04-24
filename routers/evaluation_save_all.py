@@ -33,7 +33,7 @@ def get_school_year():
     year = today.year
     if today.month < 4:
         year -= 1
-    return f"{year}年"
+    return f"{year}年度"
 
 
 def get_subject_name(subject_id: str):
@@ -103,7 +103,8 @@ async def save_final_all(payload: dict):
         data[student_id][subject_id] = {
             "subject_name": subject_name,
             "evaluation": ev.get("evaluation"),
-            "kanten": ev.get("kanten")
+            "kanten": ev.get("kanten"),
+            "school_year": school_year  
         }
 
     # Salvar
