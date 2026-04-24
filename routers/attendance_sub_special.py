@@ -22,8 +22,6 @@ ALWAYS_FULL_YEAR_SUBJECT_IDS = {
     # 家庭基礎（家庭）
     "d2afde33-9c1b-43e7-a7c8-b66bf4ea702f",
 
-    # この科目 (id: 7729fbab...) — exam_frequency=4
-    "7729fbab-9b9f-44bd-959b-65ef9d38f22a"
 }
 
 
