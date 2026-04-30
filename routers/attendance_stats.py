@@ -148,10 +148,20 @@ def get_attendance_stats(
         "grade": grade,
         "class_name": class_name,
         "school_year": school_year,
-        "stats": stats["class_stats"],
-        "student_stats": stats["students"]
+        "stats": {
+        "first_term": stats["class_stats"]["zenki"],
+        "second_term": stats["class_stats"]["koki"],
+        "total": stats["class_stats"]["total"]
+    },
+    "student_stats": {
+        sid: {
+            "first_term": st["zenki"],
+            "second_term": st["koki"],
+            "total": st["total"]
+        }
+        for sid, st in stats["students"].items()
     }
-
+}
 # ---------------------------------------------------------
 # /stats/all — para a Svelte
 # ---------------------------------------------------------
