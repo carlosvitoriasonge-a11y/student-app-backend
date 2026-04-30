@@ -1,20 +1,131 @@
 import json
 from fastapi import APIRouter, HTTPException, Query
 from pathlib import Path
-from services.attendance_stats import compute_attendance_stats
+from datetime import datetime
 
 router = APIRouter()
 
-BASE_DIR = Path(__file__).resolve().parent # pasta routers/ 
+BASE_DIR = Path(__file__).resolve().parent
 ATTENDANCE_DIR = BASE_DIR.parent / "attendance"
 
+# ---------------------------------------------------------
+# MAPA DE STATUS
+# ---------------------------------------------------------
+ATTENDANCE_MAP = {
+    "出席": {"attendance": 1},
+    "欠席": {"absence": 1},
+    "遅刻": {"attendance": 1, "late": 1},
+    "早退": {"attendance": 1, "early": 1},
+    "忌引き": {"mourn": 1},
+    "出席停止": {"stopped": 1},
+    "公欠": {"justified": 1},
+    "遅刻と早退": {"attendance": 1, "late": 1, "early": 1}
+}
 
+def empty_term():
+    return {
+        "school_days": 0,
+        "attendance": 0,
+        "absence": 0,
+        "late": 0,
+        "early": 0,
+        "mourn": 0,
+        "stopped": 0,
+        "justified": 0
+    }
+
+# ---------------------------------------------------------
+# FUNÇÃO PRINCIPAL — COMPLETA, FINAL
+# ---------------------------------------------------------
+def compute_attendance_stats(data: dict):
+    dates = sorted(data.keys())
+    if not dates:
+        return {"class_stats": {}, "students": {}}
+
+    first_date = datetime.strptime(dates[0], "%Y-%m-%d")
+    school_year = first_date.year
+
+    start = datetime(school_year, 4, 1)
+    end = datetime(school_year + 1, 3, 31)
+
+    class_zenki = empty_term()
+    class_koki = empty_term()
+
+    students = {}
+
+    for date_str, entry in data.items():
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+
+        if not (start <= dt <= end):
+            continue
+
+        term_class = class_zenki if dt.month <= 9 else class_koki
+        term_class["school_days"] += 1
+
+        for sid, status in entry.get("students", {}).items():
+
+            if sid not in students:
+                students[sid] = {
+                    "zenki": empty_term(),
+                    "koki": empty_term()
+                }
+
+            term_student = students[sid]["zenki"] if dt.month <= 9 else students[sid]["koki"]
+            term_student["school_days"] += 1
+
+            if status in ATTENDANCE_MAP:
+                for k, v in ATTENDANCE_MAP[status].items():
+                    term_class[k] += v
+                    term_student[k] += v
+
+    def finalize(term):
+        required = term["school_days"] - term["mourn"] - term["stopped"] - term["justified"]
+        required = max(required, 0)
+        rate = round(term["attendance"] / required * 100, 1) if required > 0 else 0
+        term["required_attendance_days"] = required
+        term["attendance_rate"] = rate
+
+    finalize(class_zenki)
+    finalize(class_koki)
+
+    class_total = {k: class_zenki[k] + class_koki[k] for k in class_zenki if k not in ["required_attendance_days", "attendance_rate"]}
+    finalize(class_total)
+
+    for sid, st in students.items():
+        zenki = st["zenki"]
+        koki = st["koki"]
+
+        finalize(zenki)
+        finalize(koki)
+
+        total = {k: zenki[k] + koki[k] for k in zenki if k not in ["required_attendance_days", "attendance_rate"]}
+        finalize(total)
+
+        students[sid] = {
+            "zenki": zenki,
+            "koki": koki,
+            "total": total
+        }
+
+    return {
+        "class_stats": {
+            "zenki": class_zenki,
+            "koki": class_koki,
+            "total": class_total
+        },
+        "students": students
+    }
+
+# ---------------------------------------------------------
+# HELPERS
+# ---------------------------------------------------------
 def build_filename(course, grade, class_name, school_year):
     safe_class = class_name.replace("/", "_")
-    return ATTENDANCE_DIR / f"{course}-{grade}-{safe_class}-{school_year}.json" 
-    # → 全-1-1組-2025.json
+    return ATTENDANCE_DIR / f"{course}-{grade}-{safe_class}-{school_year}.json"
 
-
+# ---------------------------------------------------------
+# /stats — por turma
+# ---------------------------------------------------------
 @router.get("/stats")
 def get_attendance_stats(
     course: str = Query(...),
@@ -24,9 +135,6 @@ def get_attendance_stats(
 ):
     filename = build_filename(course, grade, class_name, school_year)
 
-    print(">>> LENDO ARQUIVO:", filename.absolute()) 
-    print(">>> EXISTE?", filename.exists())
-
     if not filename.exists():
         raise HTTPException(status_code=404, detail="Attendance file not found")
 
@@ -35,72 +143,36 @@ def get_attendance_stats(
 
     stats = compute_attendance_stats(data)
 
-    dailyAttendance = {}
-    for date, entry in data.items():
-        if "students" not in entry:
-            continue
-        dailyAttendance[date] = {}
-
-        for student_id, status in entry["students"].items():
-
-            # IGNORA alunos 休学
-            if status == "休学":
-                continue
-
-            if status not in dailyAttendance[date]:
-                dailyAttendance[date][status] = 0
-
-            dailyAttendance[date][status] += 1
-
-
-
     return {
-    "course": course,
-    "grade": grade,
-    "class_name": class_name,
-    "school_year": school_year,
-    "stats": stats["class_stats"],        # estatística da turma
-    "student_stats": stats["students"],    # estatística por aluno
-    "dailyAttendance": dailyAttendance   
+        "course": course,
+        "grade": grade,
+        "class_name": class_name,
+        "school_year": school_year,
+        "stats": stats["class_stats"],
+        "student_stats": stats["students"]
     }
 
-
+# ---------------------------------------------------------
+# /stats/all — para a Svelte
+# ---------------------------------------------------------
 @router.get("/stats/all")
 def get_attendance_stats_all():
 
     all_students = {}
 
-    # pasta attendance/
-    base_dir = ATTENDANCE_DIR
-    if not base_dir.exists():
-        return {"student_stats": {}}
+    for file in ATTENDANCE_DIR.glob("*.json"):
 
-    # percorre todos os arquivos: 全-1-1組-2025.json etc.
-    for file in base_dir.glob("*.json"):
-
-        # extrai course, grade, class_name, school_year
-        name = file.stem  # ex: 全-1-1組-2025
-        parts = name.split("-")
-        if len(parts) < 4:
-            continue
-
-        course, grade, class_name, sy_str = parts
-        try:
-            school_year = int(sy_str)
-        except:
-            continue
-
-        # carrega o arquivo
         with file.open("r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # calcula stats usando o MESMO cálculo do 出席簿
         stats = compute_attendance_stats(data)
 
-        # junta todos os student_stats
         for sid, st in stats["students"].items():
-            all_students[sid] = st
 
-    return {
-        "student_stats": all_students
-    }
+            all_students[sid] = {
+                "first_term": st["zenki"],
+                "second_term": st["koki"],
+                "total": st["total"]
+            }
+
+    return {"student_stats": all_students}
