@@ -143,25 +143,45 @@ def get_attendance_stats(
 
     stats = compute_attendance_stats(data)
 
+    # ⭐ DAILY ATTENDANCE — FALTAVA ISSO ⭐
+    dailyAttendance = {}
+    for date, entry in data.items():
+        if "students" not in entry:
+            continue
+
+        dailyAttendance[date] = {}
+
+        for sid, status in entry["students"].items():
+
+            if status == "休学":
+                continue
+
+            if status not in dailyAttendance[date]:
+                dailyAttendance[date][status] = 0
+
+            dailyAttendance[date][status] += 1
+
     return {
         "course": course,
         "grade": grade,
         "class_name": class_name,
         "school_year": school_year,
         "stats": {
-        "first_term": stats["class_stats"]["zenki"],
-        "second_term": stats["class_stats"]["koki"],
-        "total": stats["class_stats"]["total"]
-    },
-    "student_stats": {
-        sid: {
-            "first_term": st["zenki"],
-            "second_term": st["koki"],
-            "total": st["total"]
-        }
-        for sid, st in stats["students"].items()
+            "first_term": stats["class_stats"]["zenki"],
+            "second_term": stats["class_stats"]["koki"],
+            "total": stats["class_stats"]["total"]
+        },
+        "student_stats": {
+            sid: {
+                "first_term": st["zenki"],
+                "second_term": st["koki"],
+                "total": st["total"]
+            }
+            for sid, st in stats["students"].items()
+        },
+        "dailyAttendance": dailyAttendance   # ⭐ VOLTOU ⭐
     }
-}
+
 # ---------------------------------------------------------
 # /stats/all — para a Svelte
 # ---------------------------------------------------------
