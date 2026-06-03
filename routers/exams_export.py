@@ -75,7 +75,14 @@ def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam
     if not students:
         raise HTTPException(404, "Nenhum aluno encontrado para esta turma.")
 
-    students = sorted(students, key=lambda s: (s.get("attend_no") or ""))
+    def normalize_attend_no(x):
+        try:
+            return int(x)
+        except:
+            return str(x) if x is not None else ""
+
+    students = sorted(students, key=lambda s: normalize_attend_no(s.get("attend_no")))
+
 
     # ------------------------------------------------------------------
     # 4. CABEÇALHO: GRADE E CLASS_NAME EM TODAS AS LINHAS (B e C)
