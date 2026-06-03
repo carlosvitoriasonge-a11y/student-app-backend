@@ -81,6 +81,8 @@ from routers.attendance_sub_special import router as attendance_sub_special_rout
 from routers.hoshuu import router as hoshuu_router
 from routers.sairishuu import router as sairishuu_router
 from routers.server import router as server_router
+from routers.exams_export import router as exams_export_router 
+
 
 
 
@@ -265,6 +267,7 @@ app.include_router(attendance_sub_special_router,prefix="/api/attendance_sub_spe
 app.include_router(hoshuu_router, prefix="/api/hoshuu", tags=["hoshuu"],dependencies=[Depends(verify_token)])
 app.include_router(sairishuu_router,prefix="/api/sairishuu",tags=["sairishuu"],dependencies=[Depends(verify_token)])
 app.include_router(server_router,prefix="/api")
+app.include_router(exams_export_router,prefix="/api",tags=["exams_export"],dependencies=[Depends(verify_token)])
 
 
 
