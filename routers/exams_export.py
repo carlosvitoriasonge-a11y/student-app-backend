@@ -12,24 +12,45 @@ from routers.students import filter_students
 router = APIRouter()
 
 BASE_DIR = Path("data/exams")
-TEMPLATE_PATH = Path("templates/exam_template.xlsm")
 SUBJECTS_PATH = Path("data/subjects.json")
 
 
 @router.get("/exams/export")
 def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam_key: str):
-    """
-    exam_key = 前期中間 / 前期期末 / 後期中間 / 後期期末 / 単位認定考査
-    """
 
-    # 1. Carrega template
+    # 1. Seleciona template dinâmico por grade
+    template_file = f"exam_template_{grade}.xlsm"
+    TEMPLATE_PATH = Path("templates") / template_file
+
     if not TEMPLATE_PATH.exists():
-        raise HTTPException(404, "Template Excel não encontrado.")
+        raise HTTPException(404, f"Template Excel para {grade}年 não encontrado.")
 
     wb = load_workbook(TEMPLATE_PATH, keep_vba=True)
     ws = wb["素点入力（テスト）"]
 
+    # ------------------------------------------------------------------
+    # 1.1 ABA 印刷 → B1 DINÂMICO
+    # ------------------------------------------------------------------
+    ws_print = wb["印刷"]
+
+    EXAM_TITLE_MAP = {
+        "前期中間": "前期中間考査",
+        "前期期末": "前期期末考査",
+        "後期中間": "後期中間考査",
+        "後期期末": "後期期末考査",
+        "単位認定考査": "単位認定考査"
+    }
+
+    exam_title = EXAM_TITLE_MAP.get(exam_key, exam_key)
+
+    # você já tem o school year → year
+    school_year = year
+
+    ws_print["B1"] = f"{school_year}年度 {exam_title}"
+
+    # ------------------------------------------------------------------
     # 2. Carrega JSON das provas
+    # ------------------------------------------------------------------
     filename = f"{year}-{course}-{grade}-{class_name}.json"
     json_path = BASE_DIR / filename
 
@@ -39,7 +60,9 @@ def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam
     with open(json_path, "r", encoding="utf-8") as f:
         exam_data = json.load(f)
 
+    # ------------------------------------------------------------------
     # 3. Carrega alunos
+    # ------------------------------------------------------------------
     students = filter_students(
         grade=str(grade),
         course=course,
@@ -47,7 +70,6 @@ def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam
         class_name=class_name
     )
 
-    # remove 休学
     students = [s for s in students if s.get("status") != "休学"]
 
     if not students:
@@ -59,7 +81,6 @@ def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam
     # 4. CABEÇALHO: GRADE E CLASS_NAME EM TODAS AS LINHAS (B e C)
     # ------------------------------------------------------------------
 
-    # se o template tiver mesclagem em B/C, desmescla tudo
     if ws.merged_cells:
         for merged in list(ws.merged_cells):
             ws.unmerge_cells(str(merged))
@@ -69,7 +90,6 @@ def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam
     match = re.search(r"\d+", class_name)
     class_num = int(match.group()) if match else class_name
 
-    # preenche B e C para CADA aluno (linha 3 em diante)
     row = 3
     for _st in students:
         ws[f"B{row}"] = grade_num
@@ -129,7 +149,6 @@ def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam
         subject_id = subj["id"]
         subject_group = subj["subject_group"]
 
-        # header da matéria
         ws.cell(row=2, column=col).value = subject_group
 
         row = 3
@@ -143,7 +162,9 @@ def export_exam_scores(course: str, grade: int, class_name: str, year: str, exam
 
         col += 1
 
+    # ------------------------------------------------------------------
     # 9. Salva e retorna
+    # ------------------------------------------------------------------
     output = BytesIO()
     wb.save(output)
     output.seek(0)
