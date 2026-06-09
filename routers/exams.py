@@ -24,8 +24,15 @@ def save_exams_file(path, data):
     # garante que a pasta data/exams existe
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(path, "w", encoding="utf-8") as f:
+    tmp = path.with_suffix(".tmp")
+
+    # 1) escreve no arquivo temporário
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+    # 2) substitui o arquivo original de forma atômica
+    os.replace(tmp, path)
+
 
 
 @router.get("/class/{course}/{grade}/{class_}/{year}")
