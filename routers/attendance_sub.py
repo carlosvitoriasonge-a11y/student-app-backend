@@ -7,6 +7,66 @@ from utils.date import school_year
 router = APIRouter()
 
 
+def calculate_student_attendance(class_id: str, date: str) -> dict:
+    """
+    Retorna taxa de attendance por aluno, por matéria.
+    Estrutura:
+    {
+        "student_id": {
+            "subject_id": {
+                "present": X,
+                "total": Y,
+                "rate": Z
+            }
+        }
+    }
+    """
+    sy = school_year(date)
+    path = attendance_sub_path(class_id, date)
+
+    if not os.path.exists(path):
+        return {}
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    result = {}
+
+    for day, periods in data.items():
+        for period, info in periods.items():
+            subject_id = info.get("subject_id")
+            students = info.get("students", {})
+
+            if not subject_id:
+                continue
+
+            for student_id, status in students.items():
+
+                if student_id not in result:
+                    result[student_id] = {}
+
+                if subject_id not in result[student_id]:
+                    result[student_id][subject_id] = {
+                        "present": 0,
+                        "total": 0
+                    }
+
+                # contar total
+                result[student_id][subject_id]["total"] += 1
+
+                # contar presença
+                if status == "present":
+                    result[student_id][subject_id]["present"] += 1
+
+    # calcular taxa
+    for student_id, subjects in result.items():
+        for subject_id, stats in subjects.items():
+            p = stats["present"]
+            t = stats["total"]
+            stats["rate"] = round((p / t) * 100) if t > 0 else 0
+
+    return result
+
 def attendance_sub_path(class_id: str, date: str) -> str:
     """
     Caminho do arquivo de attendance de aulas.
@@ -72,6 +132,13 @@ def get_attendance_sub(date: str, course: str, grade: str, class_name: str):
             }
         }
     }
+
+
+@router.get("/student_summary")
+def get_student_attendance_summary(date: str, course: str, grade: str, class_name: str):
+    class_id = f"{course}-{grade}-{class_name}"
+    summary = calculate_student_attendance(class_id, date)
+    return {"class_id": class_id, "summary": summary}
 
 
 @router.post("/save")
