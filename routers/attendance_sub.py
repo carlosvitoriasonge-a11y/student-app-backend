@@ -9,19 +9,12 @@ router = APIRouter()
 
 def calculate_student_attendance(class_id: str, date: str) -> dict:
     """
-    Retorna taxa de attendance por aluno, por matéria.
-    Estrutura:
-    {
-        "student_id": {
-            "subject_id": {
-                "present": X,
-                "total": Y,
-                "rate": Z
-            }
-        }
-    }
+    Retorna taxa de attendance por aluno, por matéria + porcentagem por status.
     """
-    sy = school_year(date)
+
+    PRESENT_STATUSES = {"出席", "遅刻", "怠学・居眠り", "忘れ物"}
+    IGNORE_STATUSES = {"未記録"}
+
     path = attendance_sub_path(class_id, date)
 
     if not os.path.exists(path):
@@ -42,30 +35,46 @@ def calculate_student_attendance(class_id: str, date: str) -> dict:
 
             for student_id, status in students.items():
 
+                if status in IGNORE_STATUSES:
+                    continue
+
                 if student_id not in result:
                     result[student_id] = {}
 
                 if subject_id not in result[student_id]:
                     result[student_id][subject_id] = {
                         "present": 0,
-                        "total": 0
+                        "total": 0,
+                        "status_counts": {
+                            "出席": 0,
+                            "遅刻": 0,
+                            "怠学・居眠り": 0,
+                            "忘れ物": 0,
+                            "欠席": 0
+                        }
                     }
 
-                # contar total
-                result[student_id][subject_id]["total"] += 1
+                entry = result[student_id][subject_id]
 
-                # contar presença
-                if status == "present":
-                    result[student_id][subject_id]["present"] += 1
+                entry["total"] += 1
+                entry["status_counts"][status] += 1
 
-    # calcular taxa
+                if status in PRESENT_STATUSES:
+                    entry["present"] += 1
+
+    # calcular taxas
     for student_id, subjects in result.items():
         for subject_id, stats in subjects.items():
             p = stats["present"]
             t = stats["total"]
             stats["rate"] = round((p / t) * 100) if t > 0 else 0
 
+            # porcentagem por status
+            for st, count in stats["status_counts"].items():
+                stats["status_counts"][st] = round((count / t) * 100) if t > 0 else 0
+
     return result
+
 
 def attendance_sub_path(class_id: str, date: str) -> str:
     """
