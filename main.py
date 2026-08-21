@@ -95,6 +95,20 @@ app = FastAPI(
     redirect_slashes=True
 )
 
+
+
+
+# -------------------------------
+# CORS
+# -------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(
     seating_router,
     prefix="/api/seating",
@@ -117,17 +131,6 @@ app.include_router(
     dependencies=[Depends(verify_token)] )
 
 
-
-# -------------------------------
-# CORS
-# -------------------------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 app.include_router(students_by_class_router, prefix="/api", tags=["Students"], dependencies=[Depends(verify_token)])
 # -------------------------------
