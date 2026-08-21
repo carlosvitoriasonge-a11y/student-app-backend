@@ -415,7 +415,9 @@ def get_all_class_evaluations(course: str, grade: int, class_name: str):
 @router.get("/hyoka")
 def get_hyoka(grade: int, class_name: str):
     today = date.today().isoformat()
-    sy = f"{school_year(today)}年"
+    sy = f"{school_year(today)}年度"
+
+
 
     filename = f"{sy}_{grade}_{class_name}.json"
     filepath = os.path.join("data", "hyoka", filename)
@@ -425,3 +427,38 @@ def get_hyoka(grade: int, class_name: str):
 
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
+# ============================================================
+# GET /api/evaluation/hyoka_all_years  (corrigido para nomes reais)
+# ============================================================
+
+@router.get("/hyoka_all_years")
+def get_hyoka_all_years(student_id: str):
+    HYOKA_DIR = os.path.join("data", "hyoka")
+
+    # resultado final: todas as matérias, independente de ano
+    results = {}
+
+    for fname in os.listdir(HYOKA_DIR):
+        if not fname.endswith(".json"):
+            continue
+
+        filepath = os.path.join(HYOKA_DIR, fname)
+
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except:
+            continue
+
+        # se o aluno não está no arquivo, ignora
+        if student_id not in data:
+            continue
+
+        student_records = data[student_id]
+
+        # MESCLAR todas as matérias
+        for subj_id, record in student_records.items():
+            if subj_id not in results:
+                results[subj_id] = record
+
+    return results

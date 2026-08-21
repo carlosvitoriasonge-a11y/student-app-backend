@@ -1372,6 +1372,9 @@ def get_student(student_id: str):
             photo = find_photo(s["id"])
             s["photo"] = photo
 
+            s["class_name_by_year"] = s.get("class_name_by_year", {})
+
+
             return s
 
     raise HTTPException(status_code=404, detail="Student not found")
