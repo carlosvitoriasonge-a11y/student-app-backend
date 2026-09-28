@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pathlib import Path
 import json
 import os
+import tempfile
 
 router = APIRouter()
 
@@ -21,18 +22,15 @@ def load_exams_file(course, grade, class_, year):
 
 
 def save_exams_file(path, data):
-    # garante que a pasta data/exams existe
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    tmp = path.with_suffix(".tmp")
+    # cria arquivo temporário LIMPO e único
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=path.parent, encoding="utf-8") as tmp:
+        json.dump(data, tmp, ensure_ascii=False, indent=2)
+        temp_name = tmp.name
 
-    # 1) escreve no arquivo temporário
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-    # 2) substitui o arquivo original de forma atômica
-    os.replace(tmp, path)
-
+    # substitui o arquivo real de forma atômica
+    os.replace(temp_name, path)
 
 
 @router.get("/class/{course}/{grade}/{class_}/{year}")
