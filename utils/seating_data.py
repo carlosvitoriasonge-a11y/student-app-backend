@@ -14,5 +14,6 @@ def load_seating_prefs():
         return json.load(f)
 
 def save_seating_prefs(data):
-    with open(PREF_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    # Salvamento seguro (atômico + trava + backup) via data_manager
+    from utils.data_manager import save_json
+    save_json("seating_preferences.json", data)
