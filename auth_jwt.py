@@ -6,15 +6,15 @@ import os
 
 SECRET_KEY = os.environ.get("JWT_SECRET", "d83c762d1b82d9b573340a6b010c81cd5ce2e0ebe3aac361f5a2271cde6e32c5")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
-REFRESH_TOKEN_EXPIRE_DAYS = 1 # 1 dia
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hora
+REFRESH_TOKEN_EXPIRE_DAYS = 7  # 7 dias
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def create_refresh_token(data: dict):
@@ -26,8 +26,13 @@ def create_refresh_token(data: dict):
 def verify_token(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expirado")
-    except:
+    except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token inválido")
+
+    # Refresh token não pode ser usado como access token
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    return payload
