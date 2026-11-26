@@ -83,6 +83,7 @@ from routers.sairishuu import router as sairishuu_router
 from routers.server import router as server_router
 from routers.exams_export import router as exams_export_router 
 from routers.area_sensivel import router as area_sensivel_router
+from routers.calendar import router as calendar_router
 
 
 
@@ -273,6 +274,7 @@ app.include_router(sairishuu_router,prefix="/api/sairishuu",tags=["sairishuu"],d
 app.include_router(server_router,prefix="/api")
 app.include_router(exams_export_router,prefix="/api",tags=["exams_export"],dependencies=[Depends(verify_token)])
 app.include_router(area_sensivel_router,prefix="/api/area-sensivel",tags=["area_sensivel"],dependencies=[Depends(verify_token)])
+app.include_router(calendar_router,prefix="/api/calendar",tags=["Calendar"],dependencies=[Depends(verify_token)])
 
 
 
