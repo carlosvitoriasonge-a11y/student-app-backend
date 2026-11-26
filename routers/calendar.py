@@ -1,5 +1,6 @@
 # routers/calendar.py
-# Eventos de hoje do Google Calendar (somente leitura, via service account)
+# Eventos de hoje e de amanhã do Google Calendar (somente leitura,
+# via service account)
 #
 # Configuração (backend/.env):
 #   GOOGLE_SERVICE_ACCOUNT_FILE=/caminho/fora/do/projeto/service-account.json
@@ -9,8 +10,8 @@
 # compartilhar o calendário com o e-mail da service account
 # ("Ver detalhes de todos os eventos").
 #
-# Sem a configuração, o endpoint responde configured=false e a tela
-# inicial simplesmente não mostra o cartão — nada quebra.
+# Sem a configuração, os endpoints respondem configured=false e a tela
+# inicial simplesmente não mostra os cartões — nada quebra.
 #
 # Substitui a tentativa anterior via OAuth (login do usuário), que nunca
 # foi registrada no main.py e exigia login Google de cada usuário.
@@ -36,7 +37,7 @@ SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
 CACHE_SECONDS = 300  # 5 minutos
 
 _token_cache = {"access_token": None, "expires_at": 0}
-_events_cache = {"date": None, "fetched_at": 0, "events": []}
+_events_cache = {}  # chave: data ISO -> {"fetched_at": float, "events": list}
 
 
 def _load_service_account():
@@ -114,19 +115,16 @@ def _format_event(item):
     }
 
 
-def _fetch_today_events(sa):
-    today = datetime.now(JST).date()
-
-    if (
-        _events_cache["date"] == today
-        and time.time() - _events_cache["fetched_at"] < CACHE_SECONDS
-    ):
-        return _events_cache["events"]
+def _fetch_events(sa, day):
+    key = day.isoformat()
+    cached = _events_cache.get(key)
+    if cached and time.time() - cached["fetched_at"] < CACHE_SECONDS:
+        return cached["events"]
 
     token = _access_token(sa)
     calendar_id = os.getenv("GOOGLE_CALENDAR_ID") or DEFAULT_CALENDAR_ID
 
-    start = datetime(today.year, today.month, today.day, tzinfo=JST)
+    start = datetime(day.year, day.month, day.day, tzinfo=JST)
     end = start + timedelta(days=1)
 
     r = requests.get(
@@ -149,23 +147,30 @@ def _fetch_today_events(sa):
     for e in events:
         del e["_sort"]
 
-    _events_cache["date"] = today
-    _events_cache["fetched_at"] = time.time()
-    _events_cache["events"] = events
+    _events_cache[key] = {"fetched_at": time.time(), "events": events}
     return events
+
+
+def _day_response(day):
+    date_str = day.isoformat()
+
+    sa = _load_service_account()
+    if sa is None:
+        return {"date": date_str, "configured": False, "events": []}
+
+    try:
+        events = _fetch_events(sa, day)
+        return {"date": date_str, "configured": True, "events": events}
+    except Exception as e:
+        # Não derruba a tela inicial: devolve vazio e o erro para diagnóstico
+        return {"date": date_str, "configured": True, "events": [], "error": str(e)}
 
 
 @router.get("/today")
 def today_events():
-    today = datetime.now(JST).date().isoformat()
+    return _day_response(datetime.now(JST).date())
 
-    sa = _load_service_account()
-    if sa is None:
-        return {"date": today, "configured": False, "events": []}
 
-    try:
-        events = _fetch_today_events(sa)
-        return {"date": today, "configured": True, "events": events}
-    except Exception as e:
-        # Não derruba a tela inicial: devolve vazio e o erro para diagnóstico
-        return {"date": today, "configured": True, "events": [], "error": str(e)}
+@router.get("/tomorrow")
+def tomorrow_events():
+    return _day_response(datetime.now(JST).date() + timedelta(days=1))
