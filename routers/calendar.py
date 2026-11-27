@@ -38,6 +38,7 @@ CACHE_SECONDS = 300  # 5 minutos
 
 _token_cache = {"access_token": None, "expires_at": 0}
 _events_cache = {}  # chave: data ISO -> {"fetched_at": float, "events": list}
+_last_good = {}  # chave: data ISO -> últimos eventos obtidos com sucesso
 
 
 def _load_service_account():
@@ -148,6 +149,7 @@ def _fetch_events(sa, day):
         del e["_sort"]
 
     _events_cache[key] = {"fetched_at": time.time(), "events": events}
+    _last_good[key] = events
     return events
 
 
@@ -162,6 +164,11 @@ def _day_response(day):
         events = _fetch_events(sa, day)
         return {"date": date_str, "configured": True, "events": events}
     except Exception as e:
+        # Se o Google falhar, serve os últimos eventos bons do dia (se houver),
+        # em vez de uma lista vazia que parece "dia sem eventos"
+        last = _last_good.get(date_str)
+        if last is not None:
+            return {"date": date_str, "configured": True, "events": last, "stale": True}
         # Não derruba a tela inicial: devolve vazio e o erro para diagnóstico
         return {"date": date_str, "configured": True, "events": [], "error": str(e)}
 
